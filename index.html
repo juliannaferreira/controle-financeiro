@@ -1181,6 +1181,42 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
   </div>
 </div>
 
+<!-- Modal Setup Comprador -->
+<div class="modal-overlay" id="modal-setup-comprador">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Configurar orçamento de <span id="setup-nome"></span>?
+    </div>
+    <input type="hidden" id="setup-pessoaid"/>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Deseja configurar as informações de orçamento para <strong id="setup-nome2"></strong> agora?</p>
+    <div class="form-grid">
+      <div class="f">
+        <label>Renda mensal (R$)</label>
+        <input id="setup-renda" placeholder="0,00" oninput="maskMoney(this)"/>
+      </div>
+      <div class="f">
+        <label>Mês de referência</label>
+        <input type="month" id="setup-mes"/>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">Contas Fixas</span>
+        <button class="btn btn-sm btn-accent" type="button" onclick="setupAddConta()">+ Adicionar conta</button>
+      </div>
+      <div id="setup-contas-wrap"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-setup-comprador')">Pular por agora</button>
+      <button class="btn btn-accent" onclick="saveSetupComprador()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar e configurar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ FIREBASE + APP SCRIPT ══════════════ -->
 <script type="module">
 // ══════════════════════════════════════════════════════
@@ -1965,7 +2001,14 @@ window.addPessoa = async function(){
   await fbSet('pessoas', id, novo);
   document.getElementById('p-nome').value='';
   render();
-  showAlert('al-pessoa','Comprador cadastrado!');
+  document.getElementById('setup-pessoaid').value = id;
+  document.getElementById('setup-nome').textContent = nome;
+  document.getElementById('setup-nome2').textContent = nome;
+  document.getElementById('setup-mes').value = getMesAtual();
+  document.getElementById('setup-renda').value = '';
+  document.getElementById('setup-contas-wrap').innerHTML = '';
+  window.setupContaIdx = 0;
+  openModal('modal-setup-comprador');
 }
 
 window.openEditPessoa = function(id){
@@ -1988,6 +2031,54 @@ window.saveEditPessoa = async function(){
   closeModal('modal-pessoa');
   render();
 }
+
+window.setupContaIdx = 0;
+window.setupAddConta = function(){
+  const idx = window.setupContaIdx++;
+  const catOpts = '<option value="AGUA">ÁGUA</option><option value="ALIMENTACAO">ALIMENTAÇÃO</option><option value="ASSINATURAS">ASSINATURAS</option><option value="CASA">CASA</option><option value="COMBUSTIVEL">COMBUSTÍVEL</option><option value="CONSTRUCAO">CONSTRUÇÃO</option><option value="EDUCACAO">EDUCAÇÃO</option><option value="ELETRONICOS">ELETRÔNICOS</option><option value="ENERGIA">ENERGIA</option><option value="LAZER">LAZER</option><option value="MERCADO">MERCADO</option><option value="OUTRO">OUTRO</option><option value="SAUDE">SAÚDE</option><option value="TRANSPORTE">TRANSPORTE</option><option value="VESTUARIO">VESTUÁRIO</option><option value="VIAGEM">VIAGEM</option>';
+  const row = document.createElement('div');
+  row.id = `setup-cf-row-${idx}`;
+  row.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;position:relative';
+  row.innerHTML = `<button type="button" onclick="document.getElementById('setup-cf-row-${idx}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0">✕</button>
+    <div class="form-grid cols3" style="margin-bottom:8px">
+      <div class="f"><label>Descrição</label><input id="setup-cf-desc-${idx}" class="upper" placeholder="Ex: ALUGUEL"/></div>
+      <div class="f"><label>Valor (R$)</label><input id="setup-cf-valor-${idx}" placeholder="0,00" oninput="maskMoney(this)"/></div>
+      <div class="f"><label>Dia vencimento</label><input id="setup-cf-dia-${idx}" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="f"><label>Categoria</label><select id="setup-cf-cat-${idx}">${catOpts}</select></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <div class="checkbox-row" style="margin:0"><input type="checkbox" id="setup-cf-fixa-${idx}" checked/><label for="setup-cf-fixa-${idx}">Despesa fixa</label></div>
+      </div>
+    </div>`;
+  document.getElementById('setup-contas-wrap').appendChild(row);
+};
+
+window.saveSetupComprador = async function(){
+  const pessoaId = document.getElementById('setup-pessoaid').value;
+  const mes = document.getElementById('setup-mes').value;
+  const renda = parseMoney(document.getElementById('setup-renda').value);
+  if(mes && renda > 0){
+    S.rendas[`${pessoaId}_${mes}`] = renda;
+    await saveMeta();
+  }
+  for(let i = 0; i < window.setupContaIdx; i++){
+    const rowEl = document.getElementById(`setup-cf-row-${i}`);
+    if(!rowEl) continue;
+    const desc = document.getElementById(`setup-cf-desc-${i}`)?.value.trim();
+    const valor = parseMoney(document.getElementById(`setup-cf-valor-${i}`)?.value);
+    const dia = parseInt(document.getElementById(`setup-cf-dia-${i}`)?.value)||null;
+    const cat = document.getElementById(`setup-cf-cat-${i}`)?.value;
+    const fixa = document.getElementById(`setup-cf-fixa-${i}`)?.checked !== false;
+    if(!desc || valor <= 0) continue;
+    const id = uid();
+    const nova = {id, descricao:desc, valor, pessoaId, dia, categoria:cat, fixa};
+    S.contasFixas.push(nova);
+    await fbSet('contasFixas', id, nova);
+  }
+  closeModal('modal-setup-comprador');
+  render();
+};
 
 window.removePessoa = async function(id){
   if(!confirm('Remover este comprador?')) return;
@@ -2178,11 +2269,11 @@ window.renderOrcamento = function(){
     const totalDespesas = totalFixas + fatura;
     const saldo = renda - totalDespesas - eco;
 
-    const ordOrc = window.orcOrdem[p.id] || 'cat';
+    const ordOrc = window.orcOrdem[p.id] || 'venc';
     const minhasOrd = [...minhas];
     if(ordOrc==='az') minhasOrd.sort((a,b)=>a.descricao.localeCompare(b.descricao));
     else if(ordOrc==='maior') minhasOrd.sort((a,b)=>b.valor-a.valor);
-    else if(ordOrc==='venc') minhasOrd.sort((a,b)=>(a.dia||0)-(b.dia||0));
+    else if(ordOrc==='venc') minhasOrd.sort((a,b)=>(a.dia||999)-(b.dia||999));
     else minhasOrd.sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||''));
 
     const statusRows = minhasOrd.map(c=>{
