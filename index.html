@@ -268,6 +268,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .status-pago{background:var(--accent-dim);color:var(--accent)}
 .status-pendente{background:var(--warn-dim);color:var(--warn)}
 .status-aberto{background:var(--danger-dim);color:var(--danger)}
+/* ── Password reveal ── */
+.pass-wrap{position:relative;display:flex;align-items:center}
+.pass-wrap input{flex:1;padding-right:36px}
+.pass-toggle{position:absolute;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;display:flex;align-items:center;transition:color .15s}
+.pass-toggle:hover{color:var(--text2)}
+.pass-toggle svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.senha-reveal{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:4px 10px;letter-spacing:.5px;display:none;margin-top:4px;word-break:break-all}
+
+/* ── Inline status toggle ── */
+.status-toggle{display:flex;border-radius:20px;overflow:hidden;border:1px solid var(--border);flex-shrink:0}
+.st-btn{padding:3px 10px;font-size:10px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;background:var(--surface2);color:var(--text3);white-space:nowrap}
+.st-btn:hover{filter:brightness(1.2)}
+.st-btn.active-pago{background:#166534;color:#bbf7d0}
+.st-btn.active-pendente{background:#78350f;color:#fde68a}
+.st-btn.active-aberto{background:#7f1d1d;color:#fecaca}
+body.light .st-btn.active-pago{background:var(--accent-dim);color:#166534}
+body.light .st-btn.active-pendente{background:var(--warn-dim);color:#78350f}
+body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
 
 /* ── Modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
@@ -432,13 +450,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div class="f"><label>Cartão</label><select id="c-cartao"><option value="">Selecione...</option></select></div>
             <div class="f"><label>Comprador</label><select id="c-pessoa"><option value="">Selecione...</option></select></div>
           </div>
+          <div class="form-grid">
+            <div class="f"><label>Categoria</label>
+              <select id="c-cat" onchange="toggleCatOutro('c-outro-wrap',this)">
+              <option value="ALIMENTACAO">Alimentação</option>
+              <option value="SAUDE">Saúde</option>
+              <option value="EDUCACAO">Educação</option>
+              <option value="TRANSPORTE">Transporte</option>
+              <option value="LAZER">Lazer</option>
+              <option value="VESTUARIO">Vestuário</option>
+              <option value="MERCADO">Mercado</option>
+              <option value="ELETRONICOS">Eletrônicos</option>
+              <option value="CASA">Casa</option>
+              <option value="VIAGEM">Viagem</option>
+              <option value="ASSINATURAS">Assinaturas</option>
+              <option value="OUTRO">Outro</option>
+              </select>
+            </div>
+            <div class="f" id="c-outro-wrap" style="display:none"><label>Nome da categoria</label><input id="c-outro-desc" class="upper" placeholder="Ex: PET"/></div>
+          </div>
+          <div class="form-grid cols1" style="margin-bottom:8px">
+            <div class="f"><label>Data da compra</label>
+              <input id="c-datacompra" type="date" onchange="calcFaturaAuto()"/>
+              <span id="c-fatura-info" style="font-size:11px;color:var(--accent);margin-top:3px;display:none"></span>
+            </div>
+          </div>
           <div class="checkbox-row">
             <input type="checkbox" id="c-parc-cb" onchange="toggleParcel(this)"/>
             <label for="c-parc-cb">Compra parcelada</label>
           </div>
           <div class="parcel-grid" id="parc-fields">
-            <div class="f"><label>Nº de parcelas</label><input id="c-nparc" type="number" min="2" max="72" placeholder="Ex: 12"/></div>
-            <div class="f"><label>Data 1ª parcela</label><input id="c-data1" type="month"/></div>
+            <div class="f"><label>Nº de parcelas</label><input id="c-nparc" type="number" min="2" max="72" placeholder="Ex: 12" oninput="calcFaturaAuto()"/></div>
+            <div class="f"><label>1ª parcela (calculada)</label><input id="c-data1" type="month" placeholder="Automático" style="background:var(--surface2);color:var(--text2)"/></div>
           </div>
           <button class="btn btn-accent" onclick="addCompra()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar compra
@@ -477,7 +520,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div class="f"><label>Nome do cartão</label><input id="k-nome" placeholder="Ex: NUBANK" class="upper"/></div>
             <div class="f"><label>Limite (R$)</label><input id="k-lim" placeholder="0,00" oninput="maskMoney(this)"/></div>
           </div>
-          <div class="form-grid cols1" style="margin-bottom:12px">
+          <div class="form-grid cols3" style="margin-bottom:12px">
+            <div class="f"><label>Dia de vencimento</label><input id="k-venc" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
+            <div class="f"><label>Dia de fechamento</label><input id="k-fecha" type="number" min="1" max="31" placeholder="Ex: 3"/></div>
             <div class="f"><label>Cor</label>
               <select id="k-cor">
                 <option value="#7c3aed">Roxo</option>
@@ -637,7 +682,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="alert" id="al-usuario"></div>
           <div class="form-grid cols3">
             <div class="f"><label>Usuário (login)</label><input id="u-login" placeholder="Ex: joao"/></div>
-            <div class="f"><label>Senha</label><input id="u-senha" type="password" placeholder="••••••"/></div>
+            <div class="f"><label>Senha</label>
+              <div class="pass-wrap">
+                <input id="u-senha" type="password" placeholder="••••••"/>
+                <button type="button" class="pass-toggle" onclick="togglePassVis('u-senha',this)" title="Mostrar/ocultar senha">
+                  <svg id="u-senha-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
             <div class="f"><label>Perfil</label>
               <select id="u-role">
                 <option value="user">Usuário</option>
@@ -660,6 +712,42 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- Modal Editar Cartão -->
+<div class="modal-overlay" id="modal-cartao">
+  <div class="modal">
+    <div class="modal-title"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar Cartão</div>
+    <div class="alert" id="al-edit-cartao"></div>
+    <input type="hidden" id="ek-id"/>
+    <div class="form-grid">
+      <div class="f"><label>Nome do cartão</label><input id="ek-nome" class="upper"/></div>
+      <div class="f"><label>Limite (R$)</label><input id="ek-lim" placeholder="0,00" oninput="maskMoney(this)"/></div>
+    </div>
+    <div class="form-grid cols3">
+      <div class="f"><label>Dia de vencimento</label><input id="ek-venc" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
+      <div class="f"><label>Dia de fechamento</label><input id="ek-fecha" type="number" min="1" max="31" placeholder="Ex: 3"/></div>
+      <div class="f"><label>Cor</label>
+        <select id="ek-cor">
+                <option value="#7c3aed">Roxo</option>
+                <option value="#059669">Verde</option>
+                <option value="#2563eb">Azul</option>
+                <option value="#dc2626">Vermelho</option>
+                <option value="#d97706">Âmbar</option>
+                <option value="#db2777">Rosa</option>
+                <option value="#0891b2">Ciano</option>
+                <option value="#374151">Cinza</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-cartao')">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveEditCartao()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Editar Compra -->
 <div class="modal-overlay" id="modal-compra">
   <div class="modal">
@@ -674,13 +762,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="f"><label>Cartão</label><select id="ec-cartao"></select></div>
       <div class="f"><label>Comprador</label><select id="ec-pessoa"></select></div>
     </div>
+    <div class="form-grid">
+      <div class="f"><label>Categoria</label>
+        <select id="ec-cat" onchange="toggleCatOutro('ec-outro-wrap',this)">
+        <option value="ALIMENTACAO">Alimentação</option>
+              <option value="SAUDE">Saúde</option>
+              <option value="EDUCACAO">Educação</option>
+              <option value="TRANSPORTE">Transporte</option>
+              <option value="LAZER">Lazer</option>
+              <option value="VESTUARIO">Vestuário</option>
+              <option value="MERCADO">Mercado</option>
+              <option value="ELETRONICOS">Eletrônicos</option>
+              <option value="CASA">Casa</option>
+              <option value="VIAGEM">Viagem</option>
+              <option value="ASSINATURAS">Assinaturas</option>
+              <option value="OUTRO">Outro</option>
+        </select>
+      </div>
+      <div class="f" id="ec-outro-wrap" style="display:none"><label>Nome da categoria</label><input id="ec-outro-desc" class="upper" placeholder="Ex: PET"/></div>
+    </div>
+    <div class="form-grid cols1" style="margin-bottom:8px">
+      <div class="f"><label>Data da compra</label>
+        <input id="ec-datacompra" type="date" onchange="calcFaturaAutoEdit()"/>
+        <span id="ec-fatura-info" style="font-size:11px;color:var(--accent);margin-top:3px;display:none"></span>
+      </div>
+    </div>
     <div class="checkbox-row">
       <input type="checkbox" id="ec-parc-cb" onchange="toggleParcelEdit(this)"/>
       <label for="ec-parc-cb">Compra parcelada</label>
     </div>
     <div class="parcel-grid" id="ec-parc-fields">
-      <div class="f"><label>Nº de parcelas</label><input id="ec-nparc" type="number" min="2" max="72"/></div>
-      <div class="f"><label>Data 1ª parcela</label><input id="ec-data1" type="month"/></div>
+      <div class="f"><label>Nº de parcelas</label><input id="ec-nparc" type="number" min="2" max="72" oninput="calcFaturaAutoEdit()"/></div>
+      <div class="f"><label>1ª parcela (calculada)</label><input id="ec-data1" type="month" placeholder="Automático" style="background:var(--surface2);color:var(--text2)"/></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-compra')">Cancelar</button>
@@ -824,7 +937,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <input type="hidden" id="eu-id"/>
     <div class="form-grid">
       <div class="f"><label>Login (usuário)</label><input id="eu-login" placeholder="Ex: joao"/></div>
-      <div class="f"><label>Nova senha (deixe em branco para manter)</label><input id="eu-senha" type="password" placeholder="••••••"/></div>
+      <div class="f"><label>Nova senha (deixe em branco para manter)</label>
+        <div class="pass-wrap">
+          <input id="eu-senha" type="password" placeholder="••••••"/>
+          <button type="button" class="pass-toggle" onclick="togglePassVis('eu-senha',this)" title="Mostrar/ocultar senha">
+            <svg id="eu-senha-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
     <div class="form-grid">
       <div class="f"><label>Nome de exibição</label><input id="eu-nome" class="upper" placeholder="Ex: JOÃO SILVA"/></div>
@@ -1130,6 +1250,17 @@ function render(){
 
 // ── Build selects ──
 function buildSelects(){
+  // Re-run fatura calc when cartao changes
+  const cCartaoEl = document.getElementById('c-cartao');
+  if(cCartaoEl && !cCartaoEl._faturaListenerSet){
+    cCartaoEl.addEventListener('change', calcFaturaAuto);
+    cCartaoEl._faturaListenerSet = true;
+  }
+  const ecCartaoEl = document.getElementById('ec-cartao');
+  if(ecCartaoEl && !ecCartaoEl._faturaListenerSet){
+    ecCartaoEl.addEventListener('change', calcFaturaAutoEdit);
+    ecCartaoEl._faturaListenerSet = true;
+  }
   const selIds = ['c-cartao','ec-cartao','filtro-cartao'];
   selIds.forEach(id=>{
     const el = document.getElementById(id);
@@ -1252,6 +1383,58 @@ window.toggleFaturaItens = function(id,btn){
 window.toggleParcel = function(cb){ document.getElementById('parc-fields').className='parcel-grid'+(cb.checked?' show':'') }
 window.toggleParcelEdit = function(cb){ document.getElementById('ec-parc-fields').className='parcel-grid'+(cb.checked?' show':'') }
 
+// ── Fatura auto-calculation helper ──
+function calcFaturaDoCartao(cartaoId, dataCompraStr){
+  // Returns the YYYY-MM of the fatura where this purchase will appear
+  // Logic: if purchase date <= diaFecha, goes to current month's fatura
+  //        if purchase date > diaFecha, goes to next month's fatura
+  const cartao = S.cartoes.find(c=>c.id===cartaoId);
+  if(!dataCompraStr) return getMesAtual();
+  const [yyyy, mm, dd] = dataCompraStr.split('-').map(Number);
+  if(!cartao || !cartao.diaFecha) {
+    // No fechamento configured — fatura = same month as purchase
+    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+  }
+  const diaFecha = cartao.diaFecha;
+  if(dd <= diaFecha){
+    // Before or on closing date — goes into this month's fatura
+    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+  } else {
+    // After closing date — goes into next month's fatura
+    const nextDate = new Date(yyyy, mm, 1); // mm is already 0-indexed + 1 = next month
+    return `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}`;
+  }
+}
+
+window.calcFaturaAuto = function(){
+  const cartaoId = document.getElementById('c-cartao').value;
+  const dataStr = document.getElementById('c-datacompra').value;
+  const parc = document.getElementById('c-parc-cb').checked;
+  const info = document.getElementById('c-fatura-info');
+  const data1El = document.getElementById('c-data1');
+  if(!cartaoId || !dataStr){ info.style.display='none'; return; }
+  const fatMes = calcFaturaDoCartao(cartaoId, dataStr);
+  data1El.value = fatMes;
+  const cartao = S.cartoes.find(c=>c.id===cartaoId);
+  const [y,m] = fatMes.split('-');
+  info.textContent = `→ Cai na fatura de ${m}/${y}${cartao?.diaVenc?' (vence dia '+cartao.diaVenc+')':''}`;
+  info.style.display = 'block';
+}
+
+window.calcFaturaAutoEdit = function(){
+  const cartaoId = document.getElementById('ec-cartao').value;
+  const dataStr = document.getElementById('ec-datacompra').value;
+  const info = document.getElementById('ec-fatura-info');
+  const data1El = document.getElementById('ec-data1');
+  if(!cartaoId || !dataStr){ info.style.display='none'; return; }
+  const fatMes = calcFaturaDoCartao(cartaoId, dataStr);
+  data1El.value = fatMes;
+  const cartao = S.cartoes.find(c=>c.id===cartaoId);
+  const [y,m] = fatMes.split('-');
+  info.textContent = `→ Cai na fatura de ${m}/${y}${cartao?.diaVenc?' (vence dia '+cartao.diaVenc+')':''}`;
+  info.style.display = 'block';
+}
+
 window.addCompra = async function(){
   const desc = document.getElementById('c-desc').value.trim();
   const valor = parseMoney(document.getElementById('c-valor').value);
@@ -1259,20 +1442,27 @@ window.addCompra = async function(){
   const pessoaId = document.getElementById('c-pessoa').value;
   const parc = document.getElementById('c-parc-cb').checked;
   const nparc = parseInt(document.getElementById('c-nparc').value);
-  const data1 = document.getElementById('c-data1').value;
+  const dataCompraStr = document.getElementById('c-datacompra').value; // YYYY-MM-DD
   if(!desc) return showAlert('al-compra','Informe a descrição.','err');
   if(!valor||valor<=0) return showAlert('al-compra','Informe um valor válido.','err');
   if(!cartaoId) return showAlert('al-compra','Selecione o cartão.','err');
   if(!pessoaId) return showAlert('al-compra','Selecione o comprador.','err');
+  if(!dataCompraStr) return showAlert('al-compra','Informe a data da compra.','err');
   if(parc && (!nparc||nparc<2)) return showAlert('al-compra','Informe o número de parcelas (mín. 2).','err');
-  if(parc && !data1) return showAlert('al-compra','Informe a data da 1ª parcela.','err');
+  let cat = document.getElementById('c-cat').value;
+  if(cat==='OUTRO'){ const o=document.getElementById('c-outro-desc').value.trim(); if(o) cat=o; }
+  // Calculate which fatura this purchase belongs to
+  const fatMes = calcFaturaDoCartao(cartaoId, dataCompraStr);
   const id = uid();
   const novo = {id, descricao:desc, valor, cartaoId, pessoaId, parcelado:parc,
-    parcelas:parc?nparc:1, data1: parc?data1:getMesAtual(), dataCompra: getMesAtual()};
+    parcelas:parc?nparc:1, data1: fatMes, dataCompra: fatMes, dataCompraFull: dataCompraStr, categoria:cat};
   S.compras.push(novo);
   await fbSet('compras', id, novo);
   // Limpar form
-  ['c-desc','c-valor','c-nparc','c-data1'].forEach(i=>{ const el=document.getElementById(i); if(el)el.value=''; });
+  ['c-desc','c-valor','c-nparc','c-data1','c-outro-desc','c-datacompra'].forEach(i=>{ const el=document.getElementById(i); if(el)el.value=''; });
+  document.getElementById('c-fatura-info').style.display='none';
+  document.getElementById('c-cat').value='ALIMENTACAO';
+  document.getElementById('c-outro-wrap').style.display='none';
   document.getElementById('c-parc-cb').checked=false;
   document.getElementById('parc-fields').className='parcel-grid';
   render();
@@ -1296,12 +1486,14 @@ window.renderCompras = function(){
     const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
     const pessoa = S.pessoas.find(p=>p.id===c.pessoaId);
     const parcStr = c.parcelado ? `${c.parcelas}x de ${fmtMoney(c.valor/c.parcelas)} · 1ª ${fmtMes(c.data1)}` : 'À vista';
+    const dataDisplay = c.dataCompraFull ? new Date(c.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(c.dataCompra||c.data1);
+    const catStr = c.categoria ? ` · ${c.categoria}` : '';
     return `<div class="item-row">
       <div class="item-left">
         <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
         <div>
           <div class="item-name">${c.descricao}</div>
-          <div class="item-sub">${cartao?.nome||'?'} · ${pessoa?.nome||'?'} · ${parcStr}</div>
+          <div class="item-sub">${dataDisplay} · ${cartao?.nome||'?'} · ${pessoa?.nome||'?'} · ${parcStr}${catStr}</div>
         </div>
       </div>
       <div class="item-actions">
@@ -1338,6 +1530,23 @@ window.openEditCompra = function(id){
   document.getElementById('ec-parc-fields').className = 'parcel-grid' + (c.parcelado?' show':'');
   document.getElementById('ec-nparc').value = c.parcelas||'';
   document.getElementById('ec-data1').value = c.data1||'';
+  document.getElementById('ec-datacompra').value = c.dataCompraFull||'';
+  // Show fatura info if date available
+  const efInfo = document.getElementById('ec-fatura-info');
+  if(c.data1){ const [y,m]=c.data1.split('-'); efInfo.textContent=`→ Fatura de ${m}/${y}`; efInfo.style.display='block'; }
+  else efInfo.style.display='none';
+  // Categoria
+  const knownCats = ['ALIMENTACAO','SAUDE','EDUCACAO','TRANSPORTE','LAZER','VESTUARIO','MERCADO','ELETRONICOS','CASA','VIAGEM','ASSINATURAS','OUTRO'];
+  const ecCat = document.getElementById('ec-cat');
+  const ecOutroWrap = document.getElementById('ec-outro-wrap');
+  if(c.categoria && !knownCats.includes(c.categoria)){
+    ecCat.value='OUTRO';
+    ecOutroWrap.style.display='flex';
+    document.getElementById('ec-outro-desc').value = c.categoria;
+  } else {
+    ecCat.value = c.categoria||'ALIMENTACAO';
+    ecOutroWrap.style.display='none';
+  }
   openModal('modal-compra');
 }
 
@@ -1349,11 +1558,18 @@ window.saveEditCompra = async function(){
   const valor = parseMoney(document.getElementById('ec-valor').value);
   const parc = document.getElementById('ec-parc-cb').checked;
   if(!desc||valor<=0) return showAlert('al-edit-compra','Preencha todos os campos.','err');
+  let cat = document.getElementById('ec-cat').value;
+  if(cat==='OUTRO'){ const o=document.getElementById('ec-outro-desc').value.trim(); if(o) cat=o; }
+  const ecCartaoId = document.getElementById('ec-cartao').value;
+  const ecDataStr = document.getElementById('ec-datacompra').value;
+  const fatMes = ecDataStr ? calcFaturaDoCartao(ecCartaoId, ecDataStr) : (S.compras[idx].data1||getMesAtual());
   S.compras[idx] = {...S.compras[idx], descricao:desc, valor,
-    cartaoId: document.getElementById('ec-cartao').value,
+    cartaoId: ecCartaoId,
     pessoaId: document.getElementById('ec-pessoa').value,
     parcelado:parc, parcelas:parc?parseInt(document.getElementById('ec-nparc').value):1,
-    data1: parc?document.getElementById('ec-data1').value:(S.compras[idx].data1||getMesAtual())
+    data1: fatMes, dataCompra: fatMes,
+    dataCompraFull: ecDataStr||S.compras[idx].dataCompraFull||'',
+    categoria: cat
   };
   await fbSet('compras', id, S.compras[idx]);
   closeModal('modal-compra');
@@ -1372,15 +1588,50 @@ window.addCartao = async function(){
   const nome = document.getElementById('k-nome').value.trim();
   const lim = parseMoney(document.getElementById('k-lim').value);
   const cor = document.getElementById('k-cor').value;
+  const diaVenc = parseInt(document.getElementById('k-venc').value)||null;
+  const diaFecha = parseInt(document.getElementById('k-fecha').value)||null;
   if(!nome) return showAlert('al-cartao','Informe o nome.','err');
   const id = uid();
-  const novo = {id, nome, limite:lim, cor};
+  const novo = {id, nome, limite:lim, cor, diaVenc, diaFecha};
   S.cartoes.push(novo);
   await fbSet('cartoes', id, novo);
   document.getElementById('k-nome').value='';
   document.getElementById('k-lim').value='';
+  document.getElementById('k-venc').value='';
+  document.getElementById('k-fecha').value='';
   render();
   showAlert('al-cartao','Cartão cadastrado!');
+}
+
+window.openEditCartao = function(id){
+  const c = S.cartoes.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('ek-id').value = id;
+  document.getElementById('ek-nome').value = c.nome;
+  document.getElementById('ek-lim').value = c.limite>0?Number(c.limite).toLocaleString('pt-BR',{minimumFractionDigits:2}):'';
+  document.getElementById('ek-venc').value = c.diaVenc||'';
+  document.getElementById('ek-fecha').value = c.diaFecha||'';
+  document.getElementById('ek-cor').value = c.cor||'#374151';
+  openModal('modal-cartao');
+}
+
+window.saveEditCartao = async function(){
+  const id = document.getElementById('ek-id').value;
+  const idx = S.cartoes.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const nome = document.getElementById('ek-nome').value.trim();
+  if(!nome) return showAlert('al-edit-cartao','Informe o nome.','err');
+  S.cartoes[idx] = {...S.cartoes[idx],
+    nome,
+    limite: parseMoney(document.getElementById('ek-lim').value),
+    cor: document.getElementById('ek-cor').value,
+    diaVenc: parseInt(document.getElementById('ek-venc').value)||null,
+    diaFecha: parseInt(document.getElementById('ek-fecha').value)||null
+  };
+  await fbSet('cartoes', id, S.cartoes[idx]);
+  closeModal('modal-cartao');
+  render();
+  showAlert('al-cartao','Cartão atualizado!');
 }
 
 window.removeCartao = async function(id){
@@ -1396,17 +1647,25 @@ window.removeCartao = async function(id){
 window.renderCartoes = function(){
   const el = document.getElementById('cartoes-list');
   if(!S.cartoes.length){ el.innerHTML='<div class="list-empty">Nenhum cartão</div>'; return; }
-  el.innerHTML = S.cartoes.map(c=>`
-    <div class="item-row">
+  el.innerHTML = S.cartoes.map(c=>{
+    const infos = [];
+    if(c.limite) infos.push(`Limite: ${fmtMoney(c.limite)}`);
+    if(c.diaVenc) infos.push(`Vence: dia ${c.diaVenc}`);
+    if(c.diaFecha) infos.push(`Fecha: dia ${c.diaFecha}`);
+    return `<div class="item-row">
       <div class="item-left">
         <div style="width:34px;height:20px;border-radius:4px;background:${c.cor}"></div>
         <div>
           <div class="item-name">${c.nome}</div>
-          ${c.limite?`<div class="item-sub">Limite: ${fmtMoney(c.limite)}</div>`:''}
+          ${infos.length?`<div class="item-sub">${infos.join(' · ')}</div>`:''}
         </div>
       </div>
-      <button class="btn btn-sm btn-del" onclick="removeCartao('${c.id}')">Remover</button>
-    </div>`).join('');
+      <div class="item-actions">
+        <button class="btn btn-sm btn-edit" onclick="openEditCartao('${c.id}')">Editar</button>
+        <button class="btn btn-sm btn-del" onclick="removeCartao('${c.id}')">Remover</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── COMPRADORES ──
@@ -1579,9 +1838,10 @@ window.renderOrcamento = function(){
     document.getElementById('orc-content').innerHTML='<div class="list-empty">Cadastre compradores primeiro</div>';
     return;
   }
-  // Calcular fatura por comprador neste mês
-  const faturasPorPessoa = {};
-  S.pessoas.forEach(p=>{ faturasPorPessoa[p.id]=0; });
+  // Calcular fatura por comprador e por cartão neste mês
+  const faturasPorPessoa = {};       // { pessoaId: total }
+  const faturasPorCartao = {};       // { pessoaId: { cartaoId: valor } }
+  S.pessoas.forEach(p=>{ faturasPorPessoa[p.id]=0; faturasPorCartao[p.id]={}; });
   S.compras.forEach(c=>{
     let vm = 0;
     if(c.parcelado && c.data1){
@@ -1593,7 +1853,11 @@ window.renderOrcamento = function(){
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
     }
-    if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined) faturasPorPessoa[c.pessoaId]+=vm;
+    if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined){
+      faturasPorPessoa[c.pessoaId] += vm;
+      if(!faturasPorCartao[c.pessoaId][c.cartaoId]) faturasPorCartao[c.pessoaId][c.cartaoId]=0;
+      faturasPorCartao[c.pessoaId][c.cartaoId] += vm;
+    }
   });
 
   const cards = S.pessoas.map(p=>{
@@ -1614,28 +1878,28 @@ window.renderOrcamento = function(){
     const statusRows = minhas.map(c=>{
       const sKey = `${c.id}_${mes}`;
       const st = S.statusContas[sKey]||{status:'ABERTO', valor:c.valor};
+      const curStatus = st.status||'ABERTO';
       const hoje = new Date().getDate();
       const diasVenc = c.dia ? c.dia - hoje : null;
       let vencBadge = '';
-      if(st.status!=='PAGO' && diasVenc!==null){
+      if(curStatus!=='PAGO' && diasVenc!==null){
         if(diasVenc<0) vencBadge='<span class="venc-badge venc-hoje">Vencida</span>';
         else if(diasVenc<=3) vencBadge=`<span class="venc-badge venc-breve">Vence em ${diasVenc}d</span>`;
         else vencBadge=`<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
       }
-      const badge = st.status==='PAGO'
-        ? `<span class="status-badge status-pago">Pago</span>`
-        : st.status==='PENDENTE'
-          ? `<span class="status-badge status-pendente">Pendente</span>`
-          : `<span class="status-badge status-aberto">Em Aberto</span>`;
+      const esc = (s)=>s.replace(/'/g,"\'");
       return `<div class="contas-item">
         <div class="contas-item-left">
           <div class="contas-item-nome">${c.descricao}</div>
-          <div class="contas-item-sub">Venc. dia ${c.dia||'?'} · ${c.categoria||''}</div>
+          <div class="contas-item-sub">Venc. dia ${c.dia||'?'} · ${c.categoria||''} ${vencBadge}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          ${vencBadge}${badge}
           <span class="contas-item-val">${fmtMoney(st.valor||c.valor)}</span>
-          <button class="btn btn-sm" onclick="openStatus('${c.id}','${mes}','${c.descricao}',${st.valor||c.valor},'${st.status||'ABERTO'}')">Status</button>
+          <div class="status-toggle">
+            <button class="st-btn ${curStatus==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('${c.id}','${mes}','ABERTO',${st.valor||c.valor})">Em Aberto</button>
+            <button class="st-btn ${curStatus==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('${c.id}','${mes}','PENDENTE',${st.valor||c.valor})">Pendente</button>
+            <button class="st-btn ${curStatus==='PAGO'?'active-pago':''}" onclick="setStatusInline('${c.id}','${mes}','PAGO',${st.valor||c.valor})">Pago</button>
+          </div>
           <button class="btn btn-sm btn-edit" onclick="openEditContaFixa('${c.id}')">Editar</button>
           <button class="btn btn-sm btn-del" onclick="removeContaFixaOrc('${c.id}')">Remover</button>
         </div>
@@ -1664,13 +1928,42 @@ window.renderOrcamento = function(){
       ${minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>'}
 
       <div class="orc-section">Cartões</div>
-      <div class="orc-row">
-        <div class="orc-row-name sub">Fatura do mês</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="orc-row-val expense">${fmtMoney(fatura)}</div>
-          ${fatura>0?`<button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openComprasCartao('${p.id}','${mes}')">Ver / Editar</button>`:''}
-        </div>
-      </div>
+      ${(()=>{
+        const porCartao = faturasPorCartao[p.id]||{};
+        const entradas = Object.entries(porCartao).filter(([,v])=>v>0);
+        if(!entradas.length) return '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma compra neste mês</div>';
+        const rows = entradas.map(([cartaoId, val])=>{
+          const cartao = S.cartoes.find(k=>k.id===cartaoId);
+          const stKey = 'cart_'+cartaoId+'_'+p.id+'_'+mes;
+          const stCart = S.statusContas[stKey]||{status:'ABERTO', valor:val};
+          const cur = stCart.status||'ABERTO';
+          return `<div class="contas-item">
+            <div class="contas-item-left">
+              <div class="contas-item-nome" style="display:flex;align-items:center;gap:7px">
+                <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
+                ${cartao?.nome||'?'}
+              </div>
+              <div class="contas-item-sub">Fatura do mês</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="contas-item-val">${fmtMoney(val)}</span>
+              <div class="status-toggle">
+                <button class="st-btn ${cur==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','ABERTO',${val})">Em Aberto</button>
+                <button class="st-btn ${cur==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PENDENTE',${val})">Pendente</button>
+                <button class="st-btn ${cur==='PAGO'?'active-pago':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PAGO',${val})">Pago</button>
+              </div>
+              <button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openComprasCartao('${p.id}','${mes}')">Ver</button>
+            </div>
+          </div>`;
+        }).join('');
+        const totalRow = entradas.length > 1
+          ? `<div class="orc-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px">
+               <div class="orc-row-name" style="font-size:12px;font-weight:600">Total cartões</div>
+               <div class="orc-row-val expense">${fmtMoney(fatura)}</div>
+             </div>`
+          : '';
+        return rows + totalRow;
+      })()}
 
       <div class="orc-section">Resumo</div>
       <div class="orc-row">
@@ -1792,6 +2085,12 @@ window.saveStatus = async function(){
   renderOrcamento();
 }
 
+window.setStatusInline = async function(contaId, mes, status, valor){
+  S.statusContas[`${contaId}_${mes}`] = {status, valor};
+  await saveMeta();
+  renderOrcamento();
+}
+
 window.openRenda = function(pessoaId, mes, nome, valor){
   document.getElementById('mr-pessoaid').value = pessoaId;
   document.getElementById('mr-mes').value = mes;
@@ -1885,7 +2184,17 @@ window.renderUsuarios = function(){
             : '<span style="font-size:12px;color:var(--text3)">(você)</span>'}
         </div>
       </div>
-      ${!isAdm&&u.compradores?.length?`<div class="compradores-check">${
+      <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Senha:</span>
+        <div style="position:relative;display:inline-flex;align-items:center;gap:6px">
+          <span id="senha-mask-${u.id}" style="font-size:13px;color:var(--text3);letter-spacing:2px">••••••••</span>
+          <span id="senha-val-${u.id}" class="senha-reveal">${u.senha||'—'}</span>
+          <button type="button" class="pass-toggle" style="position:static" onclick="toggleSenhaCard('${u.id}')" title="Revelar senha">
+            <svg id="card-eye-${u.id}" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      ${!isAdm&&u.compradores?.length?`<div class="compradores-check" style="margin-top:.5rem">${
         u.compradores.map(id=>{const p=S.pessoas.find(p=>p.id===id);return p?`<div class="cc-item sel"><span class="comp-dot" style="background:${p.cor}"></span>${p.nome}</div>`:''}).join('')
       }</div>`:''}
     </div>`;
@@ -2052,14 +2361,45 @@ window.removeContaFixaOrc = async function(id){
   renderContasFixas();
 }
 
+// ── PASSWORD VISIBILITY ──
+window.togglePassVis = function(inputId, btn){
+  const input = document.getElementById(inputId);
+  const icon = btn.querySelector('svg');
+  if(input.type === 'password'){
+    input.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+window.toggleSenhaCard = function(userId){
+  const mask = document.getElementById('senha-mask-'+userId);
+  const val  = document.getElementById('senha-val-'+userId);
+  const icon = document.getElementById('card-eye-'+userId);
+  const isHidden = val.style.display === 'none' || val.style.display === '';
+  if(isHidden){
+    mask.style.display = 'none';
+    val.style.display  = 'inline-block';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    mask.style.display = 'inline';
+    val.style.display  = 'none';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
 // ── THEME ──
 window.toggleTheme = function(){
   const isLight = document.body.classList.toggle('light');
-  localStorage.setItem('theme', isLight?'light':'dark');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
   const icon = document.getElementById('theme-icon');
   if(isLight){
+    // Sun icon (light mode active)
     icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
   } else {
+    // Moon icon (dark mode active)
     icon.innerHTML='<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
   }
 }
@@ -2246,8 +2586,10 @@ window.toggleNcoCatOutro = function(sel){
 // ── INIT ──
 async function init(){
   document.getElementById('loading-screen').style.display='flex';
-  // Apply saved theme
-  if(localStorage.getItem('theme')==='light'){
+  // Apply saved theme — light is default
+  const savedTheme = localStorage.getItem('theme');
+  const useLightMode = savedTheme === null || savedTheme === 'light';
+  if(useLightMode){
     document.body.classList.add('light');
     const icon = document.getElementById('theme-icon');
     if(icon) icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
