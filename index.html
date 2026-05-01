@@ -482,9 +482,18 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           Faturas do Mês
         </div>
         <div class="stats-row" id="fatura-stats"></div>
-        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px">
+        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--text2)">Mês de referência:</label>
           <input type="month" id="mes-ref" style="padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px" onchange="renderFaturas()"/>
+          <div class="f" style="flex-direction:row;align-items:center;gap:6px;margin-left:8px">
+            <label style="font-size:11px;color:var(--text2);white-space:nowrap">Ordenar:</label>
+            <select id="ordem-faturas" onchange="renderFaturas()" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px">
+              <option value="maior">Maior fatura primeiro</option>
+              <option value="menor">Menor fatura primeiro</option>
+              <option value="az">Nome A-Z</option>
+              <option value="za">Nome Z-A</option>
+            </select>
+          </div>
         </div>
         <div id="faturas-content"></div>
       </div>
@@ -576,6 +585,19 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <label>Filtrar por comprador</label>
               <select id="filtro-pessoa" onchange="renderCompras()"><option value="">Todos</option></select>
             </div>
+          </div>
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text2);white-space:nowrap">Ordenar:</label>
+            <select id="ordem-compras" onchange="renderCompras()" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px">
+              <option value="recente">Mais recente primeiro</option>
+              <option value="antiga">Mais antiga primeiro</option>
+              <option value="az">Nome A-Z</option>
+              <option value="za">Nome Z-A</option>
+              <option value="maior">Maior valor primeiro</option>
+              <option value="menor">Menor valor primeiro</option>
+              <option value="cartao">Agrupado por cartão</option>
+              <option value="pessoa">Agrupado por comprador</option>
+            </select>
           </div>
           <div id="compras-list"></div>
         </div>
@@ -1483,8 +1505,36 @@ window.renderFaturas = function(){
   if(!document.getElementById('mes-ref').value) document.getElementById('mes-ref').value = mes;
   const isAdm = SESSION && SESSION.role==='adm';
   const allowed = isAdm ? null : (SESSION.compradores.length ? SESSION.compradores : null);
+  const ordemFat = document.getElementById('ordem-faturas')?.value || 'maior';
   let totalGeral = 0;
-  const html = S.cartoes.map(cartao=>{
+  // Calcular totais por cartão antes de ordenar
+  const cartoesComTotal = S.cartoes.map(cartao=>{
+    const compras = S.compras.filter(c=>c.cartaoId===cartao.id);
+    let total = 0;
+    compras.forEach(c=>{
+      if(allowed && !allowed.includes(c.pessoaId)) return;
+      let vm = 0;
+      if(c.parcelado && c.data1){
+        const [py,pm]=c.data1.split('-').map(Number);
+        const [cy,cm]=mes.split('-').map(Number);
+        const diff=(cy-py)*12+(cm-pm);
+        if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+      } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+        const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+        if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
+      } else {
+        const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+        if(compMes===mes) vm=c.valor;
+      }
+      total+=vm;
+    });
+    return {cartao, total};
+  });
+  if(ordemFat==='maior') cartoesComTotal.sort((a,b)=>b.total-a.total);
+  else if(ordemFat==='menor') cartoesComTotal.sort((a,b)=>a.total-b.total);
+  else if(ordemFat==='az') cartoesComTotal.sort((a,b)=>a.cartao.nome.localeCompare(b.cartao.nome));
+  else if(ordemFat==='za') cartoesComTotal.sort((a,b)=>b.cartao.nome.localeCompare(a.cartao.nome));
+  const html = cartoesComTotal.map(({cartao})=>{
     const compras = S.compras.filter(c=>c.cartaoId===cartao.id);
     let total = 0;
     const porPessoa = {};
@@ -1674,14 +1724,15 @@ window.renderCompras = function(){
   const filtroCartao = document.getElementById('filtro-cartao')?.value || '';
   const filtroPessoa = document.getElementById('filtro-pessoa')?.value || '';
   const busca = (document.getElementById('busca-compra')?.value || '').toLowerCase();
+  const ordem = document.getElementById('ordem-compras')?.value || 'recente';
   let lista = [...S.compras];
   if(!isAdm && SESSION.compradores.length) lista = lista.filter(c=>SESSION.compradores.includes(c.pessoaId));
   if(filtroCartao) lista = lista.filter(c=>c.cartaoId===filtroCartao);
   if(filtroPessoa) lista = lista.filter(c=>c.pessoaId===filtroPessoa);
   if(busca) lista = lista.filter(c=>c.descricao.toLowerCase().includes(busca));
-  lista.sort((a,b)=>b.id.localeCompare(a.id));
   if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhuma compra encontrada</div>'; return; }
-  el.innerHTML = lista.map(c=>{
+
+  const renderItem = c => {
     const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
     const pessoa = S.pessoas.find(p=>p.id===c.pessoaId);
     const parcStr = c.parcelado ? `${c.parcelas}x de ${fmtMoney(c.valor/c.parcelas)} · 1ª ${fmtMes(c.data1)}` : 'À vista';
@@ -1706,7 +1757,40 @@ window.renderCompras = function(){
         <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  if(ordem === 'cartao' || ordem === 'pessoa') {
+    const getKey = c => ordem === 'cartao'
+      ? (S.cartoes.find(k=>k.id===c.cartaoId)?.nome || '?')
+      : (S.pessoas.find(p=>p.id===c.pessoaId)?.nome || '?');
+    const grupos = {};
+    lista.forEach(c => {
+      const k = getKey(c);
+      if(!grupos[k]) grupos[k] = [];
+      grupos[k].push(c);
+    });
+    el.innerHTML = Object.keys(grupos).sort((a,b)=>a.localeCompare(b)).map(key => {
+      const itens = grupos[key];
+      itens.sort((a,b)=>b.id.localeCompare(a.id));
+      const subtotal = itens.reduce((s,c)=>s+c.valor,0);
+      const cor = ordem === 'cartao'
+        ? (S.cartoes.find(k=>k.nome===key)?.cor || '#888')
+        : (S.pessoas.find(p=>p.nome===key)?.cor || '#888');
+      return `<div style="margin-bottom:4px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;border-left:3px solid ${cor}">
+        <span style="color:var(--text)">${key}</span>
+        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${fmtMoney(subtotal)}</span>
+      </div>` + itens.map(renderItem).join('');
+    }).join('');
+    return;
+  }
+
+  if(ordem === 'recente') lista.sort((a,b)=>b.id.localeCompare(a.id));
+  else if(ordem === 'antiga') lista.sort((a,b)=>a.id.localeCompare(b.id));
+  else if(ordem === 'az') lista.sort((a,b)=>a.descricao.localeCompare(b.descricao));
+  else if(ordem === 'za') lista.sort((a,b)=>b.descricao.localeCompare(a.descricao));
+  else if(ordem === 'maior') lista.sort((a,b)=>b.valor-a.valor);
+  else if(ordem === 'menor') lista.sort((a,b)=>a.valor-b.valor);
+  el.innerHTML = lista.map(renderItem).join('');
 }
 
 window.duplicarCompra = async function(id){
@@ -2039,6 +2123,8 @@ window.renderContasFixas = function(){
 }
 
 // ── ORÇAMENTO ──
+window.orcOrdem = {};
+window.setOrcOrdem = function(pessoaId, val){ window.orcOrdem[pessoaId]=val; renderOrcamento(); };
 window.renderOrcamento = function(){
   const mes = document.getElementById('orc-mes')?.value || getMesAtual();
   if(!document.getElementById('orc-mes').value) document.getElementById('orc-mes').value = mes;
@@ -2092,7 +2178,14 @@ window.renderOrcamento = function(){
     const totalDespesas = totalFixas + fatura;
     const saldo = renda - totalDespesas - eco;
 
-    const statusRows = minhas.map(c=>{
+    const ordOrc = window.orcOrdem[p.id] || 'cat';
+    const minhasOrd = [...minhas];
+    if(ordOrc==='az') minhasOrd.sort((a,b)=>a.descricao.localeCompare(b.descricao));
+    else if(ordOrc==='maior') minhasOrd.sort((a,b)=>b.valor-a.valor);
+    else if(ordOrc==='venc') minhasOrd.sort((a,b)=>(a.dia||0)-(b.dia||0));
+    else minhasOrd.sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||''));
+
+    const statusRows = minhasOrd.map(c=>{
       const sKey = `${c.id}_${mes}`;
       const stData = S.statusContas[sKey];
       const curStatus = stData?.status || 'ABERTO';
@@ -2139,7 +2232,15 @@ window.renderOrcamento = function(){
       </div>
 
       <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Despesas</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span>Despesas</span>
+          <select style="font-size:11px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:'DM Sans',sans-serif" onchange="setOrcOrdem('${p.id}',this.value)">
+            <option value="cat" ${ordOrc==='cat'?'selected':''}>Por categoria</option>
+            <option value="az" ${ordOrc==='az'?'selected':''}>A-Z</option>
+            <option value="maior" ${ordOrc==='maior'?'selected':''}>Maior valor</option>
+            <option value="venc" ${ordOrc==='venc'?'selected':''}>Por vencimento</option>
+          </select>
+        </div>
         <button class="btn btn-sm btn-accent" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openNovaContaOrc('${p.id}')">+ Adicionar</button>
       </div>
       ${minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>'}
