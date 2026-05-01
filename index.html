@@ -2,8 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Controle de Cartões</title>
+<meta name="description" content="Controle de cartões de crédito e orçamento mensal"/>
+<meta name="theme-color" content="#4ade80" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Cartões"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -91,6 +100,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── Duplicate btn ── */
 .btn-dup{border-color:#2a1a4a;color:var(--purple)}
 .btn-dup:hover{background:var(--purple-dim)}
+
+/* ── PWA Install Banner ── */
+#pwa-banner{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:300;background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:.85rem 1.25rem;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-width:380px;width:calc(100% - 2rem)}
+#pwa-banner.show{display:flex}
+.pwa-banner-icon{width:38px;height:38px;background:var(--accent-dim);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pwa-banner-icon svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2}
+.pwa-banner-text{flex:1}
+.pwa-banner-title{font-size:13px;font-weight:600;color:var(--text)}
+.pwa-banner-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.pwa-banner-btns{display:flex;gap:6px;flex-shrink:0}
+.btn-pwa-install{padding:6px 14px;background:var(--accent);color:#0a1a10;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer}
+.btn-pwa-dismiss{padding:6px 10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text3);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer}
+
+/* ── Safe area for notch phones ── */
+.topbar{padding-left:max(1.5rem,env(safe-area-inset-left));padding-right:max(1.5rem,env(safe-area-inset-right))}
+.content{padding-bottom:max(1.5rem,env(safe-area-inset-bottom))}
+@media(max-width:700px){
+  .content{padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+  .form-grid.cols3{grid-template-columns:1fr 1fr}
+  .form-grid.cols4{grid-template-columns:1fr 1fr}
+  .orc-header{grid-template-columns:1fr}
+  .modal{padding:1.25rem}
+  .status-toggle{flex-wrap:wrap}
+  .fatura-total{font-size:20px}
+}
 
 /* ── Loading ── */
 #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:1rem}
@@ -1200,17 +1234,17 @@ function setupUI(){
   const rt = document.getElementById('tb-role');
   rt.textContent = isAdm ? 'ADM' : 'Usuário';
   rt.className = 'role-tag ' + (isAdm?'role-adm':'role-user');
-  // Mostrar/ocultar menus
+  // Usuários (só ADM vê gestão de usuários)
   document.getElementById('nav-usuarios').style.display = isAdm?'':'none';
-  document.getElementById('nav-label-cfg') && (document.getElementById('nav-label-cfg').style.display = isAdm?'':'none');
-  document.getElementById('nav-contas-fixas').style.display = isAdm?'':'none';
-  document.getElementById('nav-relatorio').style.display = isAdm?'':'none';
-  // Nav de cadastros só adm
+  // Todos os outros menus ficam visíveis para todos
+  document.getElementById('nav-label-cfg') && (document.getElementById('nav-label-cfg').style.display = '');
+  document.getElementById('nav-contas-fixas').style.display = '';
+  document.getElementById('nav-relatorio').style.display = '';
   ['nav-compras','nav-cartoes','nav-pessoas'].forEach(id=>{
-    document.getElementById(id).style.display = isAdm?'':'none';
+    document.getElementById(id).style.display = '';
   });
-  document.getElementById('nav-label-cad').style.display = isAdm?'':'none';
-  document.getElementById('nav-orcamento').style.display = isAdm?'':'none';
+  document.getElementById('nav-label-cad').style.display = '';
+  document.getElementById('nav-orcamento').style.display = '';
   goPage('faturas');
   render();
 }
@@ -1498,10 +1532,9 @@ window.renderCompras = function(){
       </div>
       <div class="item-actions">
         <span class="item-val">${fmtMoney(c.valor)}</span>
-        ${isAdm?`
         <button class="btn btn-sm btn-dup" onclick="duplicarCompra('${c.id}')" title="Duplicar">⊕</button>
         <button class="btn btn-sm btn-edit" onclick="openEditCompra('${c.id}')">Editar</button>
-        <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>`:''}
+        <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
       </div>
     </div>`;
   }).join('');
@@ -1712,8 +1745,11 @@ window.removePessoa = async function(id){
 
 window.renderPessoas = function(){
   const el = document.getElementById('pessoas-list');
-  if(!S.pessoas.length){ el.innerHTML='<div class="list-empty">Nenhum comprador</div>'; return; }
-  el.innerHTML = S.pessoas.map(p=>`
+  const isAdm = SESSION && SESSION.role==='adm';
+  let lista = S.pessoas;
+  if(!isAdm && SESSION.compradores.length) lista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
+  if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhum comprador</div>'; return; }
+  el.innerHTML = lista.map(p=>`
     <div class="item-row">
       <div class="item-left">
         <div style="width:34px;height:34px;border-radius:50%;background:${p.cor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff">${initials(p.nome)}</div>
@@ -1810,8 +1846,11 @@ window.removeContaFixa = async function(id){
 window.renderContasFixas = function(){
   const el = document.getElementById('contas-list');
   if(!el) return;
-  if(!S.contasFixas.length){ el.innerHTML='<div class="list-empty">Nenhuma conta fixa</div>'; return; }
-  el.innerHTML = S.contasFixas.map(c=>{
+  const isAdm = SESSION && SESSION.role==='adm';
+  let lista = S.contasFixas;
+  if(!isAdm && SESSION.compradores.length) lista = S.contasFixas.filter(c=>SESSION.compradores.includes(c.pessoaId));
+  if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhuma conta fixa</div>'; return; }
+  el.innerHTML = lista.map(c=>{
     const p = S.pessoas.find(x=>x.id===c.pessoaId);
     return `<div class="item-row">
       <div class="item-left">
@@ -1860,7 +1899,11 @@ window.renderOrcamento = function(){
     }
   });
 
-  const cards = S.pessoas.map(p=>{
+  const isAdmOrc = SESSION && SESSION.role==='adm';
+  const pessoasOrc = (!isAdmOrc && SESSION.compradores.length)
+    ? S.pessoas.filter(p=>SESSION.compradores.includes(p.id))
+    : S.pessoas;
+  const cards = pessoasOrc.map(p=>{
     const rKey = `${p.id}_${mes}`;
     const renda = S.rendas[rKey]||0;
     const fatura = faturasPorPessoa[p.id]||0;
@@ -2409,9 +2452,13 @@ window.initRelatorio = function(){
   const sel = document.getElementById('rel-pessoa');
   if(!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">Todos os compradores</option>';
-  S.pessoas.forEach(p=>{ sel.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
-  sel.value = cur;
+  const isAdm = SESSION && SESSION.role==='adm';
+  let lista = S.pessoas;
+  if(!isAdm && SESSION.compradores.length) lista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
+  sel.innerHTML = isAdm ? '<option value="">Todos os compradores</option>' : '';
+  lista.forEach(p=>{ sel.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
+  if(!isAdm && lista.length===1) sel.value = lista[0].id; // auto-select if only one
+  else sel.value = cur;
   const mesEl = document.getElementById('rel-mes');
   if(!mesEl.value) mesEl.value = getMesAtual();
 }
@@ -2604,6 +2651,48 @@ async function init(){
 }
 
 init();
+
+// ── PWA: Service Worker + Install Banner ──
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  _pwaPrompt = e;
+  if(!localStorage.getItem('pwa_dismissed')){
+    document.getElementById('pwa-banner').classList.add('show');
+  }
+});
+window.addEventListener('appinstalled', ()=>{
+  document.getElementById('pwa-banner').classList.remove('show');
+});
+document.getElementById('pwa-install-btn').onclick = async ()=>{
+  if(!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  const { outcome } = await _pwaPrompt.userChoice;
+  if(outcome==='accepted') document.getElementById('pwa-banner').classList.remove('show');
+  _pwaPrompt = null;
+};
+window.dismissPWA = ()=>{
+  document.getElementById('pwa-banner').classList.remove('show');
+  localStorage.setItem('pwa_dismissed','1');
+};
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .catch(e=>console.warn('SW não registrado (modo local):', e));
+}
 </script>
+<!-- PWA Install Banner -->
+<div id="pwa-banner">
+  <div class="pwa-banner-icon">
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+  </div>
+  <div class="pwa-banner-text">
+    <div class="pwa-banner-title">Instalar Controle de Cartões</div>
+    <div class="pwa-banner-sub">Acesse como app no celular ou computador</div>
+  </div>
+  <div class="pwa-banner-btns">
+    <button class="btn-pwa-install" id="pwa-install-btn">Instalar</button>
+    <button class="btn-pwa-dismiss" onclick="dismissPWA()">✕</button>
+  </div>
+</div>
 </body>
 </html>
