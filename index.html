@@ -1159,7 +1159,23 @@ async function loadAll(){
   if(pessoas.length) S.pessoas = pessoas;
   if(compras.length) S.compras = compras;
   if(contasFixas.length) S.contasFixas = contasFixas;
-  if(usuarios.length) S.usuarios = usuarios;
+
+  // ── Garante que a lista de usuários é válida ──
+  // Só substitui o padrão se o Firestore retornou usuários com login e senha válidos
+  const usuariosValidos = usuarios.filter(u => u && u.login && u.senha && u.role);
+  if(usuariosValidos.length) {
+    S.usuarios = usuariosValidos;
+  }
+  // Garante que SEMPRE existe pelo menos um ADM com login 'admin'
+  // (evita ficar trancado fora do sistema)
+  const temAdmin = S.usuarios.some(u => u.role === 'adm');
+  if(!temAdmin){
+    const adminPadrao = {id:'adm1', login:'admin', senha:'admin123', role:'adm', compradores:[], nome:'ADMINISTRADOR'};
+    S.usuarios.unshift(adminPadrao);
+    // Persiste o admin no Firestore se estiver online
+    await fbSet('usuarios', 'adm1', adminPadrao).catch(()=>{});
+  }
+
   if(meta){
     if(meta.rendas) S.rendas = meta.rendas;
     if(meta.statusContas) S.statusContas = meta.statusContas;
@@ -1211,11 +1227,35 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 window.doLogin = function(){
   const login = document.getElementById('li-user').value.trim().toLowerCase();
   const senha = document.getElementById('li-pass').value;
-  const u = S.usuarios.find(u=>u.login.toLowerCase()===login && u.senha===senha);
-  if(!u){ document.getElementById('login-err').style.display='block'; return; }
-  document.getElementById('login-err').style.display='none';
+  const errEl = document.getElementById('login-err');
+
+  // Diagnóstico: verifica se há usuários carregados
+  if(!S.usuarios || S.usuarios.length === 0){
+    errEl.textContent = 'Nenhum usuário encontrado. Tente recarregar a página.';
+    errEl.style.display='block'; return;
+  }
+
+  const u = S.usuarios.find(u => u.login && u.login.toLowerCase() === login && u.senha === senha);
+  if(!u){
+    // Verifica se o login existe mas a senha está errada
+    const loginExiste = S.usuarios.find(u => u.login && u.login.toLowerCase() === login);
+    errEl.textContent = loginExiste ? 'Senha incorreta.' : 'Usuário não encontrado.';
+    errEl.style.display='block'; return;
+  }
+  errEl.style.display='none';
   SESSION = {userId:u.id, login:u.login, role:u.role, compradores:u.compradores||[], nome:u.nome||u.login};
   setupUI();
+}
+
+// ── Função de reset de emergência (use no console do navegador se necessário) ──
+// Digite no console: resetAdmin()
+window.resetAdmin = async function(){
+  const admin = {id:'adm1', login:'admin', senha:'admin123', role:'adm', compradores:[], nome:'ADMINISTRADOR'};
+  const idx = S.usuarios.findIndex(u=>u.id==='adm1'||u.login==='admin');
+  if(idx>=0) S.usuarios[idx]=admin; else S.usuarios.unshift(admin);
+  await fbSet('usuarios','adm1',admin).catch(()=>{});
+  alert('Admin restaurado! Login: admin | Senha: admin123');
+  console.log('Usuários atuais:', S.usuarios);
 }
 window.doLogout = function(){
   SESSION = null;
