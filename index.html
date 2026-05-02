@@ -1510,6 +1510,7 @@ function buildSelects(){
     ecCartaoEl.addEventListener('change', calcFaturaAutoEdit);
     ecCartaoEl._faturaListenerSet = true;
   }
+  const cartoesOrdenados = [...S.cartoes].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   const selIds = ['c-cartao','ec-cartao','filtro-cartao'];
   selIds.forEach(id=>{
     const el = document.getElementById(id);
@@ -1517,7 +1518,7 @@ function buildSelects(){
     const cur = el.value;
     el.innerHTML = '<option value="">Selecione...</option>';
     if(id==='filtro-cartao') el.innerHTML = '<option value="">Todos</option>';
-    S.cartoes.forEach(c=>{ el.innerHTML += `<option value="${c.id}">${c.nome}</option>` });
+    cartoesOrdenados.forEach(c=>{ el.innerHTML += `<option value="${c.id}">${c.nome}</option>` });
     el.value = cur;
   });
   const pessoaSelIds = ['c-pessoa','ec-pessoa','filtro-pessoa','cf-pessoa','ecf-pessoa'];
@@ -1969,7 +1970,8 @@ window.removeCartao = async function(id){
 window.renderCartoes = function(){
   const el = document.getElementById('cartoes-list');
   if(!S.cartoes.length){ el.innerHTML='<div class="list-empty">Nenhum cartão</div>'; return; }
-  el.innerHTML = S.cartoes.map(c=>{
+  const lista = [...S.cartoes].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  el.innerHTML = lista.map(c=>{
     const infos = [];
     if(c.limite) infos.push(`Limite: ${fmtMoney(c.limite)}`);
     if(c.diaVenc) infos.push(`Vence: dia ${c.diaVenc}`);
