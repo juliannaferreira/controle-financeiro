@@ -2336,6 +2336,15 @@ window.renderOrcamento = function(){
       </div>
       ${minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>'}
 
+      <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Economia / Reserva</span>
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openEconomia('${p.id}','${mes}','${p.nome}',${eco})">Editar</button>
+      </div>
+      <div class="orc-row">
+        <div class="orc-row-name">Reserva do mês</div>
+        <div class="orc-row-val" style="color:var(--accent2)">${eco>0?fmtMoney(eco):'<span style="color:var(--text3);font-size:12px">Não definida</span>'}</div>
+      </div>
+
       <div class="orc-section">Cartões</div>
       ${(()=>{
         const porCartao = faturasPorCartao[p.id]||{};
@@ -2374,23 +2383,14 @@ window.renderOrcamento = function(){
         return rows + totalRow;
       })()}
 
-      <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Economia / Reserva</span>
-        <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openEconomia('${p.id}','${mes}','${p.nome}',${eco})">Editar</button>
-      </div>
-      <div class="orc-row">
-        <div class="orc-row-name">Reserva do mês</div>
-        <div class="orc-row-val" style="color:var(--purple)">${fmtMoney(eco)}</div>
-      </div>
-
       <div class="orc-section">Resumo</div>
       <div class="orc-row">
         <div class="orc-row-name">Total despesas</div>
         <div class="orc-row-val expense">${fmtMoney(totalDespesas)}</div>
       </div>
       ${eco>0?`<div class="orc-row">
-        <div class="orc-row-name">Economia</div>
-        <div class="orc-row-val" style="color:var(--purple)">-${fmtMoney(eco)}</div>
+        <div class="orc-row-name">Economia / Reserva</div>
+        <div class="orc-row-val" style="color:var(--accent2)">-${fmtMoney(eco)}</div>
       </div>`:''}
       <div class="orc-total-row">
         <div class="orc-total-label">Saldo</div>
@@ -2933,8 +2933,9 @@ window.previewRelatorio = function(){
         });
       }
       html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px dashed var(--border);margin-top:.25rem"><span style="font-size:12px">Fatura cartões</span><span style="color:var(--danger);font-size:12px">${fmtMoney(d.fatura)}</span></div>`;
+      if(d.eco>0) html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px dashed var(--border);margin-top:.25rem"><span style="font-size:12px">Economia / Reserva</span><span style="color:var(--accent2);font-size:12px">-${fmtMoney(d.eco)}</span></div>`;
     }
-    
+
     if(incluir!=='resumo' && d.comprasList.length){
       html += `<div style="font-size:11px;color:var(--text3);margin:.5rem 0 .25rem;font-weight:600">COMPRAS DETALHADAS</div>`;
       d.comprasList.forEach(c=>{
@@ -2943,7 +2944,7 @@ window.previewRelatorio = function(){
           <span style="font-family:monospace">${fmtMoney(c.val)}</span></div>`;
       });
     }
-    
+
     if(incluir!=='compras'){
       const cor = d.saldo>=0?'var(--accent)':'var(--danger)';
       html += `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--surface);border-radius:var(--radius);margin-top:.75rem;font-weight:700">
@@ -2979,7 +2980,9 @@ window.gerarPDF = function(){
           body += `<tr><td>${c.descricao} <span class="tag ${cls}">${c.status}</span></td><td class="val">${fmtMoney(c.valorReal)}</td></tr>`;
         });
       }
-      body += `<tr><td>Fatura cartões</td><td class="val red">${fmtMoney(d.fatura)}</td></tr></table>`;
+      body += `<tr><td>Fatura cartões</td><td class="val red">${fmtMoney(d.fatura)}</td></tr>`;
+      if(d.eco>0) body += `<tr><td>Economia / Reserva</td><td class="val blue">-${fmtMoney(d.eco)}</td></tr>`;
+      body += `</table>`;
     }
     if(incluir!=='resumo' && d.comprasList.length){
       body += `<div class="section-label" style="margin:.75rem 0 .4rem">COMPRAS DETALHADAS</div><table>`;
@@ -3007,7 +3010,7 @@ window.gerarPDF = function(){
     td{padding:4px 6px;border-bottom:1px dashed #d0d5e8;font-size:11px}
     td:last-child{text-align:right;width:120px}
     .val{font-family:monospace;font-weight:600}
-    .green{color:#166534}.red{color:#991b1b}.warn{color:#92400e}
+    .green{color:#166534}.red{color:#991b1b}.warn{color:#92400e}.blue{color:#1d4ed8}
     .section-label{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding-top:.5rem}
     .saldo-row{display:flex;justify-content:space-between;padding:8px;background:#f0fdf4;border-radius:6px;margin-top:.5rem;font-weight:700;font-size:13px}
     .tag{font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600;border:1px solid currentColor;margin-left:4px}
