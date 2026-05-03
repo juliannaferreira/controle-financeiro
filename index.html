@@ -1671,24 +1671,24 @@ window.toggleParcelEdit = function(cb){ document.getElementById('ec-parc-fields'
 
 // ── Fatura auto-calculation helper ──
 function calcFaturaDoCartao(cartaoId, dataCompraStr){
-  // Returns the YYYY-MM of the fatura where this purchase will appear
-  // Logic: if purchase date <= diaFecha, goes to current month's fatura
-  //        if purchase date > diaFecha, goes to next month's fatura
   const cartao = S.cartoes.find(c=>c.id===cartaoId);
   if(!dataCompraStr) return getMesAtual();
   const [yyyy, mm, dd] = dataCompraStr.split('-').map(Number);
   if(!cartao || !cartao.diaFecha) {
-    // No fechamento configured — fatura = same month as purchase
-    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+    // Sem fechamento: fatura vence no mês seguinte ao da compra
+    // mm (1-based do split) usado como índice JS já aponta para o mês seguinte
+    const next = new Date(yyyy, mm, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   }
   const diaFecha = cartao.diaFecha;
   if(dd <= diaFecha){
-    // Before or on closing date — goes into this month's fatura
-    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+    // Antes ou no fechamento: fatura vence no mês seguinte
+    const next = new Date(yyyy, mm, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   } else {
-    // After closing date — goes into next month's fatura
-    const nextDate = new Date(yyyy, mm, 1); // mm is already 0-indexed + 1 = next month
-    return `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}`;
+    // Após o fechamento: fatura vence em dois meses
+    const next = new Date(yyyy, mm + 1, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   }
 }
 
