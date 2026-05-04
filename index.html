@@ -3294,7 +3294,8 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       vm=c.valor;
     }
     const pessoa=S.pessoas.find(p=>p.id===c.pessoaId);
-    return {...c, vm, parcDesc, pessoaNome:pessoa?.nome||'?', pessoaCor:pessoa?.cor||'#888'};
+    const dataSort = c.dataCompraFull || (c.dataCompra ? c.dataCompra+'-01' : (c.data1 ? c.data1+'-01' : '0000-00-00'));
+    return {...c, vm, parcDesc, pessoaNome:pessoa?.nome||'?', pessoaCor:pessoa?.cor||'#888', dataSort};
   });
 }
 
@@ -3327,7 +3328,11 @@ window.previewRelCartoes = function(){
         <div style="width:12px;height:12px;border-radius:50%;background:${pg.cor}"></div>
         <span style="font-size:12px;font-weight:600;color:var(--text)">${pg.nome}</span>
         <span style="font-size:11px;color:var(--text3)">— ${fmtMoney(pg.total)}</span></div>`;
-      pg.items.forEach(it=>{
+      [...pg.items].sort((a,b)=>{
+        const da = a.dataCompraFull || (a.dataCompra ? a.dataCompra+'-01' : (a.data1 ? a.data1+'-01' : '0000-00-00'));
+        const db = b.dataCompraFull || (b.dataCompra ? b.dataCompra+'-01' : (b.data1 ? b.data1+'-01' : '0000-00-00'));
+        return da.localeCompare(db);
+      }).forEach(it=>{
         const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
         html += `<div style="display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:11px;border-bottom:1px dashed var(--border)">
           <span>${it.descricao} <span style="color:var(--text3)">(${dataDp} · ${it.parcDesc} · ${it.categoria||''})</span></span>
