@@ -669,7 +669,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           </div>
           <div class="parcel-grid" id="parc-fields">
             <div class="f"><label>Nº de parcelas</label><input id="c-nparc" type="number" min="2" max="72" placeholder="Ex: 12" oninput="calcFaturaAuto();updateParcelaInfo()"/></div>
-            <div class="f"><label>1ª parcela (calculada)</label><input id="c-data1" type="month" placeholder="Automático" style="background:var(--surface2);color:var(--text2)"/></div>
+            <div class="f"><label>1ª parcela <span style="font-weight:400;color:var(--accent);font-size:10px">(editável)</span></label><input id="c-data1" type="month" placeholder="Automático" title="Calculado automaticamente, mas pode ser editado"/></div>
           </div>
           <span id="c-parcela-info" style="font-size:12px;color:var(--purple);margin-top:2px;display:none;font-weight:500"></span>
           <button class="btn btn-accent" onclick="addCompra()">
@@ -1035,7 +1035,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
     </div>
     <div class="parcel-grid" id="ec-parc-fields">
       <div class="f"><label>Nº de parcelas</label><input id="ec-nparc" type="number" min="2" max="72" oninput="calcFaturaAutoEdit()"/></div>
-      <div class="f"><label>1ª parcela (calculada)</label><input id="ec-data1" type="month" placeholder="Automático" style="background:var(--surface2);color:var(--text2)"/></div>
+      <div class="f"><label>1ª parcela <span style="font-weight:400;color:var(--accent);font-size:10px">(editável)</span></label><input id="ec-data1" type="month" placeholder="Automático" title="Edite para corrigir o mês da 1ª parcela"/></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-compra')">Cancelar</button>
@@ -1686,7 +1686,7 @@ window.renderFaturas = function(){
         const diff=(cy-py)*12+(cm-pm);
         if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
       } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
-        const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+        const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
         if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
       } else {
         const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
@@ -1717,7 +1717,7 @@ window.renderFaturas = function(){
           parcDesc = `Parcela ${diff+1}/${c.parcelas}`;
         }
       } else if(c.categoria === 'ASSINATURAS' && !c.parcelado){
-        const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
+        const startMes = c.dataCompraFull ? c.dataCompraFull.slice(0,7) : (c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||''));
         if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)){
           vm = c.valor;
           parcDesc = 'Recorrente';
@@ -1802,22 +1802,28 @@ window.toggleParcelEdit = function(cb){ document.getElementById('ec-parc-fields'
 function calcFaturaDoCartao(cartaoId, dataCompraStr){
   const cartao = S.cartoes.find(c=>c.id===cartaoId);
   if(!dataCompraStr) return getMesAtual();
-  const [yyyy, mm, dd] = dataCompraStr.split('-').map(Number);
-  if(!cartao || !cartao.diaFecha) {
-    // Sem fechamento: fatura vence no mês seguinte ao da compra
-    // mm (1-based do split) usado como índice JS já aponta para o mês seguinte
-    const next = new Date(yyyy, mm, 1);
-    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
+  // yyyy, mm, dd com mm=1..12 (valores reais, não índice JS)
+  const parts = dataCompraStr.split('-').map(Number);
+  const yyyy = parts[0], mm = parts[1], dd = parts[2];
+  // addMeses: soma N meses a um mes 1-based e retorna "YYYY-MM"
+  function addMeses(y, m, n){
+    const d = new Date(y, (m - 1) + n, 1); // mês 0-based internamente
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   }
-  const diaFecha = cartao.diaFecha;
+  if(!cartao || !cartao.diaFecha){
+    // Sem fechamento definido: vai para fatura do mês seguinte
+    return addMeses(yyyy, mm, 1);
+  }
+  const diaFecha = Number(cartao.diaFecha);
+  // Lógica: o cartão fecha no diaFecha de cada mês.
+  // Se a compra foi feita ANTES ou NO dia de fechamento (dd <= diaFecha):
+  //   → ainda está dentro do ciclo atual → fatura deste mesmo mês
+  // Se a compra foi feita APÓS o fechamento (dd > diaFecha):
+  //   → o ciclo atual já fechou → vai para a fatura do mês seguinte
   if(dd <= diaFecha){
-    // Antes ou no fechamento: fatura vence no mês seguinte
-    const next = new Date(yyyy, mm, 1);
-    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
+    return addMeses(yyyy, mm, 0); // mesmo mês
   } else {
-    // Após o fechamento: fatura vence em dois meses
-    const next = new Date(yyyy, mm + 1, 1);
-    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
+    return addMeses(yyyy, mm, 1); // mês seguinte
   }
 }
 
@@ -1866,8 +1872,10 @@ window.addCompra = async function(){
   if(parc && (!nparc||nparc<2)) return showAlert('al-compra','Informe o número de parcelas (mín. 2).','err');
   let cat = document.getElementById('c-cat').value;
   if(cat==='OUTRO'){ const o=document.getElementById('c-outro-desc').value.trim(); if(o) cat=o; }
-  // Calculate which fatura this purchase belongs to
-  const fatMes = calcFaturaDoCartao(cartaoId, dataCompraStr);
+  // Calcula o mês da fatura; permite sobrescrever manualmente o campo c-data1
+  const fatMesCalculado = calcFaturaDoCartao(cartaoId, dataCompraStr);
+  const data1Manual = document.getElementById('c-data1').value;
+  const fatMes = (data1Manual && data1Manual !== fatMesCalculado) ? data1Manual : fatMesCalculado;
   const id = uid();
   const novo = {id, descricao:desc, valor, cartaoId, pessoaId, parcelado:parc,
     parcelas:parc?nparc:1, data1: fatMes, dataCompra: fatMes, dataCompraFull: dataCompraStr, categoria:cat};
@@ -2014,7 +2022,11 @@ window.saveEditCompra = async function(){
   if(cat==='OUTRO'){ const o=document.getElementById('ec-outro-desc').value.trim(); if(o) cat=o; }
   const ecCartaoId = document.getElementById('ec-cartao').value;
   const ecDataStr = document.getElementById('ec-datacompra').value;
-  const fatMes = ecDataStr ? calcFaturaDoCartao(ecCartaoId, ecDataStr) : (S.compras[idx].data1||getMesAtual());
+  // Calcula o mês da fatura pela data da compra (usando diaFecha do cartão)
+  const fatMesCalculado = ecDataStr ? calcFaturaDoCartao(ecCartaoId, ecDataStr) : (S.compras[idx].data1||getMesAtual());
+  // Permite que o usuário sobrescreva o mês da 1ª parcela manualmente
+  const data1Manual = document.getElementById('ec-data1').value;
+  const fatMes = (data1Manual && data1Manual !== fatMesCalculado) ? data1Manual : fatMesCalculado;
   S.compras[idx] = {...S.compras[idx], descricao:desc, valor,
     cartaoId: ecCartaoId,
     pessoaId: document.getElementById('ec-pessoa').value,
@@ -2554,7 +2566,7 @@ window.renderOrcamento = function(){
           const diff=(cy2-py)*12+(cm2-pm2);
           if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
         } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
-          const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+          const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
           if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
           const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
@@ -2588,7 +2600,7 @@ window.renderOrcamento = function(){
       const diff=(cy2-py)*12+(cm2-pm2);
       if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
-      const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+      const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
@@ -3236,7 +3248,7 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const diff=(cy-py)*12+(cm-pm);
       if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
-      const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+      const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
