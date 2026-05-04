@@ -771,6 +771,10 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               </select>
             </div>
           </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="p-orcamento" checked/>
+            <label for="p-orcamento">Exibir no módulo de orçamento mensal</label>
+          </div>
           <button class="btn btn-accent" onclick="addPessoa()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Cadastrar comprador
           </button>
@@ -939,6 +943,10 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             <label>Compradores com acesso (somente perfil Usuário)</label>
             <div class="compradores-check" id="u-compradores-check" style="margin-top:8px"></div>
           </div>
+          <div class="checkbox-row" id="u-orcamento-wrap">
+            <input type="checkbox" id="u-orcamento" checked/>
+            <label for="u-orcamento">Criar orçamento mensal para os compradores vinculados</label>
+          </div>
           <button class="btn btn-accent" onclick="addUsuario()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Criar usuário
           </button>
@@ -1065,6 +1073,10 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           <option value="#0891b2">Ciano</option>
         </select>
       </div>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="ep-orcamento"/>
+      <label for="ep-orcamento">Exibir no módulo de orçamento mensal</label>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-pessoa')">Cancelar</button>
@@ -1958,8 +1970,10 @@ window.renderCompras = function(){
     return;
   }
 
-  if(ordem === 'recente') lista.sort((a,b)=>b.id.localeCompare(a.id));
-  else if(ordem === 'antiga') lista.sort((a,b)=>a.id.localeCompare(b.id));
+  // Helper: get sortable date string from compra (YYYY-MM-DD or YYYY-MM)
+  const getDataSort = c => c.dataCompraFull || (c.dataCompra ? c.dataCompra + '-01' : (c.data1 ? c.data1 + '-01' : '0000-00-00'));
+  if(ordem === 'recente') lista.sort((a,b) => getDataSort(b).localeCompare(getDataSort(a)));
+  else if(ordem === 'antiga') lista.sort((a,b) => getDataSort(a).localeCompare(getDataSort(b)));
   else if(ordem === 'az') lista.sort((a,b)=>a.descricao.localeCompare(b.descricao));
   else if(ordem === 'za') lista.sort((a,b)=>b.descricao.localeCompare(a.descricao));
   else if(ordem === 'maior') lista.sort((a,b)=>b.valor-a.valor);
@@ -2138,8 +2152,9 @@ window.addPessoa = async function(){
   const nome = document.getElementById('p-nome').value.trim();
   const cor = document.getElementById('p-cor').value;
   if(!nome) return showAlert('al-pessoa','Informe o nome.','err');
+  const exibirOrcamento = document.getElementById('p-orcamento').checked;
   const id = uid();
-  const novo = {id, nome, cor};
+  const novo = {id, nome, cor, exibirOrcamento};
   S.pessoas.push(novo);
   await fbSet('pessoas', id, novo);
   document.getElementById('p-nome').value='';
@@ -2160,6 +2175,7 @@ window.openEditPessoa = function(id){
   document.getElementById('ep-id').value = id;
   document.getElementById('ep-nome').value = p.nome;
   document.getElementById('ep-cor').value = p.cor;
+  document.getElementById('ep-orcamento').checked = p.exibirOrcamento !== false;
   openModal('modal-pessoa');
 }
 
@@ -2169,7 +2185,7 @@ window.saveEditPessoa = async function(){
   if(idx<0) return;
   const nome = document.getElementById('ep-nome').value.trim();
   if(!nome) return;
-  S.pessoas[idx] = {...S.pessoas[idx], nome, cor: document.getElementById('ep-cor').value};
+  S.pessoas[idx] = {...S.pessoas[idx], nome, cor: document.getElementById('ep-cor').value, exibirOrcamento: document.getElementById('ep-orcamento').checked};
   await fbSet('pessoas', id, S.pessoas[idx]);
   closeModal('modal-pessoa');
   render();
@@ -2393,8 +2409,8 @@ window.renderOrcamento = function(){
 
   const isAdmOrc = SESSION && SESSION.role==='adm';
   const pessoasOrc = (!isAdmOrc && SESSION.compradores.length)
-    ? S.pessoas.filter(p=>SESSION.compradores.includes(p.id))
-    : S.pessoas;
+    ? S.pessoas.filter(p => SESSION.compradores.includes(p.id) && p.exibirOrcamento !== false)
+    : S.pessoas.filter(p => p.exibirOrcamento !== false);
   const cards = pessoasOrc.map(p=>{
     const rKey = `${p.id}_${mes}`;
     const renda = S.rendas[rKey]||0;
@@ -2712,8 +2728,18 @@ window.addUsuario = async function(){
   const novo = {id, login, senha, role, compradores, nome:login.toUpperCase()};
   S.usuarios.push(novo);
   await fbSet('usuarios', id, novo);
+  if(!document.getElementById('u-orcamento').checked){
+    for(const pid of compradores){
+      const idx = S.pessoas.findIndex(p=>p.id===pid);
+      if(idx>=0){
+        S.pessoas[idx] = {...S.pessoas[idx], exibirOrcamento: false};
+        await fbSet('pessoas', pid, S.pessoas[idx]);
+      }
+    }
+  }
   document.getElementById('u-login').value='';
   document.getElementById('u-senha').value='';
+  document.getElementById('u-orcamento').checked=true;
   document.querySelectorAll('#u-compradores-check input').forEach(i=>{
     i.checked=false;
     document.getElementById('cc-'+i.value)?.classList.remove('sel');
@@ -3036,7 +3062,7 @@ function calcOrcPessoa(pessoaId, mes){
     if(vm>0){
       const cartao=S.cartoes.find(k=>k.id===c.cartaoId);
       fatura+=vm;
-      comprasList.push({desc:c.descricao, val:vm, cartao:cartao?.nome||'?', parcDesc, categoria:c.categoria||''});
+      comprasList.push({desc:c.descricao, val:vm, cartao:cartao?.nome||'?', parcDesc, categoria:c.categoria||'', dataSort: c.dataCompraFull || (c.dataCompra ? c.dataCompra+'-01' : (c.data1 ? c.data1+'-01' : '0000-00-00')), dataDisplay: c.dataCompraFull ? new Date(c.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(c.dataCompra||c.data1)});
     }
   });
   const contas = S.contasFixas.filter(c=>c.pessoaId===pessoaId&&c.fixa!==false).map(c=>{
@@ -3081,9 +3107,9 @@ window.previewRelatorio = function(){
 
     if(incluir!=='resumo' && d.comprasList.length){
       html += `<div style="font-size:11px;color:var(--text3);margin:.5rem 0 .25rem;font-weight:600">COMPRAS DETALHADAS</div>`;
-      d.comprasList.forEach(c=>{
+      [...d.comprasList].sort((a,b)=>a.dataSort.localeCompare(b.dataSort)).forEach(c=>{
         html += `<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;border-bottom:1px dashed var(--border)">
-          <span>${c.desc} <span style="color:var(--text3)">(${c.cartao} · ${c.parcDesc})</span></span>
+          <span>${c.desc} <span style="color:var(--text3)">(${c.dataDisplay||''} · ${c.cartao} · ${c.parcDesc})</span></span>
           <span style="font-family:monospace">${fmtMoney(c.val)}</span></div>`;
       });
     }
@@ -3129,8 +3155,8 @@ window.gerarPDF = function(){
     }
     if(incluir!=='resumo' && d.comprasList.length){
       body += `<div class="section-label" style="margin:.75rem 0 .4rem">COMPRAS DETALHADAS</div><table>`;
-      d.comprasList.forEach(c=>{
-        body += `<tr><td>${c.desc}<br/><small>${c.cartao} · ${c.parcDesc}</small></td><td class="val">${fmtMoney(c.val)}</td></tr>`;
+      [...d.comprasList].sort((a,b)=>a.dataSort.localeCompare(b.dataSort)).forEach(c=>{
+        body += `<tr><td>${c.desc}<br/><small>${c.dataDisplay||''} · ${c.cartao} · ${c.parcDesc}</small></td><td class="val">${fmtMoney(c.val)}</td></tr>`;
       });
       body += `</table>`;
     }
@@ -3339,7 +3365,11 @@ window.gerarPDFCartoes = function(){
     Object.values(porPessoa).forEach(pg=>{
       body += `<div class="pessoa-label">${pg.nome} — ${fmtMoney(pg.total)}</div>`;
       body += `<table>`;
-      pg.items.forEach(it=>{
+      [...pg.items].sort((a,b)=>{
+        const da = a.dataCompraFull || (a.dataCompra ? a.dataCompra+'-01' : (a.data1 ? a.data1+'-01' : '0000-00-00'));
+        const db = b.dataCompraFull || (b.dataCompra ? b.dataCompra+'-01' : (b.data1 ? b.data1+'-01' : '0000-00-00'));
+        return da.localeCompare(db);
+      }).forEach(it=>{
         const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
         body += `<tr><td>${it.descricao}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
       });
