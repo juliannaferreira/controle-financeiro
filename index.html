@@ -116,14 +116,114 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── Safe area for notch phones ── */
 .topbar{padding-left:max(1.5rem,env(safe-area-inset-left));padding-right:max(1.5rem,env(safe-area-inset-right))}
 .content{padding-bottom:max(1.5rem,env(safe-area-inset-bottom))}
-@media(max-width:700px){
-  .content{padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom))}
-  .form-grid.cols3{grid-template-columns:1fr 1fr}
-  .form-grid.cols4{grid-template-columns:1fr 1fr}
-  .orc-header{grid-template-columns:1fr}
-  .modal{padding:1.25rem}
-  .status-toggle{flex-wrap:wrap}
-  .fatura-total{font-size:20px}
+@media(max-width:768px){
+  .sidebar{ display:none !important; }
+
+  .main-layout{ flex-direction: column; height: calc(100vh - 56px); }
+
+  .content{
+    padding: .75rem;
+    padding-bottom: 80px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .bottom-nav{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex !important;
+    align-items: stretch;
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav .nav-item{
+    flex: 1;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 2px;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    min-width: 0;
+    width: auto;
+  }
+
+  .bottom-nav .nav-item svg{
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .bottom-nav .nav-item .nav-label{
+    font-size: 9px;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    color: inherit;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .bottom-nav .nav-item.active{ background: var(--accent-dim); color: var(--accent); }
+
+  /* Popup "Mais" */
+  #mais-popup{
+    position: fixed;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -6px 24px rgba(0,0,0,.35);
+    padding: 6px 0;
+  }
+  #mais-popup .nav-item{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    width: 100%;
+    text-align: left;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+  }
+  #mais-popup .nav-item svg{ width: 18px; height: 18px; flex-shrink: 0; }
+  #mais-popup .nav-item .nav-label{ font-size: 13px; display: block; white-space: normal; text-transform: none; letter-spacing: normal; font-weight: normal; color: inherit; }
+  #mais-backdrop{ position: fixed; inset: 0; z-index: 199; background: transparent; }
+
+  .form-grid{ grid-template-columns: 1fr; }
+  .form-grid.cols3, .form-grid.cols4{ grid-template-columns: 1fr 1fr; }
+  .orc-header{ grid-template-columns: 1fr; }
+  .item-actions{ flex-wrap: wrap; gap: 4px; }
+  .item-row{ align-items: flex-start; flex-wrap: wrap; gap: 6px; }
+  .stats-row{ grid-template-columns: 1fr 1fr; }
+  .topbar{ padding: 0 .75rem; gap: .5rem; }
+  .topbar-logo span{ display: none; }
+  .user-badge .role-tag{ display: none; }
+  .modal{ padding: 1.25rem; max-height: 85vh; }
+  .status-toggle{ flex-wrap: wrap; }
+  .fatura-total{ font-size: 20px; }
+  .contas-item{ flex-wrap: wrap; gap: 6px; }
 }
 
 /* ── Loading ── */
@@ -158,7 +258,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .user-badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;display:flex;align-items:center;gap:8px;font-size:13px}
 .user-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
 .role-tag{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:500}
-.role-adm{background:var(--warn-dim);color:var(--warn);border:1px solid #5a3d00}
+.role-adm{background:var(--purple-dim);color:var(--purple);border:1px solid #4c1d95}
 .role-user{background:var(--accent2-dim);color:var(--accent2);border:1px solid #1a3a60}
 .btn-logout{padding:6px 12px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
 .btn-logout:hover{border-color:var(--danger);color:var(--danger)}
@@ -170,6 +270,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:var(--accent-dim);color:var(--accent);border:1px solid #1f4a2e}
+.bottom-nav{display:none}
+#mais-popup{display:none}
 .content{flex:1;overflow-y:auto;padding:1.5rem}
 .page{display:none}
 .page.active{display:block}
@@ -235,9 +337,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .fatura-divider{border:none;border-top:1px solid rgba(255,255,255,.2);margin:1rem 0;position:relative;z-index:1}
 .fatura-pessoas{position:relative;z-index:1}
 .fatura-pessoa-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
-.fatura-pessoa-name{opacity:.9;display:flex;align-items:center;gap:7px}
 .pessoa-mini-avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff;flex-shrink:0}
-.fatura-pessoa-val{font-weight:600;font-family:'DM Mono',monospace}
 .expand-btn{width:100%;background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.85);border-radius:var(--radius);padding:6px;font-size:12px;cursor:pointer;margin-top:.75rem;position:relative;z-index:1;font-family:'DM Sans',sans-serif;transition:background .15s}
 .expand-btn:hover{background:rgba(255,255,255,.2)}
 .fatura-items{display:none;margin-top:.75rem;position:relative;z-index:1}
@@ -245,10 +345,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .fatura-item{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.12);opacity:.85}
 .fatura-item:last-child{border-bottom:none}
 .fi-left{display:flex;flex-direction:column;gap:1px}
-.fi-name{font-weight:500}
-.fi-meta{opacity:.65;font-size:11px}
-.fi-val{font-family:'DM Mono',monospace;font-weight:500;opacity:.9}
+.fi-name{font-weight:500;color:rgba(255,255,255,0.92)}
+.fi-meta{opacity:.75;font-size:11px;color:rgba(255,255,255,0.85)}
+.fi-val{font-family:'DM Mono',monospace;font-weight:500;color:rgba(255,255,255,0.92)}
 .fatura-empty{opacity:.6;font-size:13px;text-align:center;padding:.5rem;position:relative;z-index:1}
+.fatura-card .fatura-item{color:rgba(255,255,255,0.92)}
+.fatura-card .fatura-item .fi-name,.fatura-card .fatura-item .fi-meta,.fatura-card .fatura-item .fi-val{color:rgba(255,255,255,0.92)}
+.fatura-pessoa-name{opacity:.95;display:flex;align-items:center;gap:7px;color:rgba(255,255,255,0.95)}
+.fatura-pessoa-val{font-weight:600;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.95)}
 
 /* ── Stats ── */
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
@@ -335,13 +439,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
 .sync-dot.saving{background:var(--warn);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-@media(max-width:700px){
-  .sidebar{display:none}
-  .form-grid{grid-template-columns:1fr}
-  .form-grid.cols3,.form-grid.cols4{grid-template-columns:1fr 1fr}
-  .orc-header{grid-template-columns:1fr}
-  .stats-row{grid-template-columns:1fr 1fr}
-}
+/* (mobile handled in block above) */
 </style>
 </head>
 <body>
@@ -438,6 +536,49 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
         Relatório PDF
       </button>
     </div>
+    <!-- Backdrop e popup "Mais" (mobile only) -->
+    <div id="mais-backdrop" onclick="closeMaisMenu()" style="display:none"></div>
+    <div id="mais-popup" style="display:none">
+      <button class="nav-item" id="mais-contas-fixas" onclick="goPage('contasfixas')" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        <span class="nav-label">Contas Fixas</span>
+      </button>
+      <button class="nav-item" id="mais-relatorio" onclick="goPage('relatorio')" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="nav-label">Relatório PDF</span>
+      </button>
+      <button class="nav-item" id="mais-usuarios" onclick="goPage('usuarios')" style="display:none">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        <span class="nav-label">Usuários</span>
+      </button>
+    </div>
+    <!-- Bottom nav (mobile only) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="goPage('faturas')">
+        <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+        <span class="nav-label">Faturas</span>
+      </button>
+      <button class="nav-item" onclick="goPage('orcamento')">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="nav-label">Orçamento</span>
+      </button>
+      <button class="nav-item" onclick="goPage('compras')">
+        <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="nav-label">Compras</span>
+      </button>
+      <button class="nav-item" onclick="goPage('cartoes')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <span class="nav-label">Cartões</span>
+      </button>
+      <button class="nav-item" onclick="goPage('pessoas')">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span class="nav-label">Comprad.</span>
+      </button>
+      <button class="nav-item" id="nav-mais" onclick="toggleMaisMenu()">
+        <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
+        <span class="nav-label">Mais</span>
+      </button>
+    </nav>
     <div class="content">
 
       <!-- Faturas -->
@@ -447,9 +588,18 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           Faturas do Mês
         </div>
         <div class="stats-row" id="fatura-stats"></div>
-        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px">
+        <div style="margin-bottom:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--text2)">Mês de referência:</label>
           <input type="month" id="mes-ref" style="padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px" onchange="renderFaturas()"/>
+          <div class="f" style="flex-direction:row;align-items:center;gap:6px;margin-left:8px">
+            <label style="font-size:11px;color:var(--text2);white-space:nowrap">Ordenar:</label>
+            <select id="ordem-faturas" onchange="renderFaturas()" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px">
+              <option value="maior">Maior fatura primeiro</option>
+              <option value="menor">Menor fatura primeiro</option>
+              <option value="az">Nome A-Z</option>
+              <option value="za">Nome Z-A</option>
+            </select>
+          </div>
         </div>
         <div id="faturas-content"></div>
       </div>
@@ -478,7 +628,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           <div class="alert" id="al-compra"></div>
           <div class="form-grid">
             <div class="f"><label>Descrição</label><input id="c-desc" placeholder="Ex: SUPERMERCADO" class="upper"/></div>
-            <div class="f"><label>Valor (R$)</label><input id="c-valor" placeholder="0,00" oninput="maskMoney(this)"/></div>
+            <div class="f"><label>Valor (R$)</label><input id="c-valor" placeholder="0,00" oninput="maskMoney(this);updateParcelaInfo()"/></div>
           </div>
           <div class="form-grid">
             <div class="f"><label>Cartão</label><select id="c-cartao"><option value="">Selecione...</option></select></div>
@@ -487,6 +637,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           <div class="form-grid">
             <div class="f"><label>Categoria</label>
               <select id="c-cat" onchange="toggleCatOutro('c-outro-wrap',this)">
+              <option value="AGUA">ÁGUA</option>
               <option value="ALIMENTACAO">ALIMENTAÇÃO</option>
               <option value="ASSINATURAS">ASSINATURAS</option>
               <option value="CASA">CASA</option>
@@ -494,13 +645,14 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <option value="CONSTRUCAO">CONSTRUÇÃO</option>
               <option value="EDUCACAO">EDUCAÇÃO</option>
               <option value="ELETRONICOS">ELETRÔNICOS</option>
+              <option value="ENERGIA">ENERGIA</option>
               <option value="LAZER">LAZER</option>
               <option value="MERCADO">MERCADO</option>
+              <option value="OUTRO">OUTRO</option>
               <option value="SAUDE">SAÚDE</option>
               <option value="TRANSPORTE">TRANSPORTE</option>
               <option value="VESTUARIO">VESTUÁRIO</option>
               <option value="VIAGEM">VIAGEM</option>
-              <option value="OUTRO">OUTRO</option>
               </select>
             </div>
             <div class="f" id="c-outro-wrap" style="display:none"><label>Nome da categoria</label><input id="c-outro-desc" class="upper" placeholder="Ex: PET"/></div>
@@ -512,13 +664,14 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             </div>
           </div>
           <div class="checkbox-row">
-            <input type="checkbox" id="c-parc-cb" onchange="toggleParcel(this)"/>
+            <input type="checkbox" id="c-parc-cb" onchange="toggleParcel(this);updateParcelaInfo()"/>
             <label for="c-parc-cb">Compra parcelada</label>
           </div>
           <div class="parcel-grid" id="parc-fields">
-            <div class="f"><label>Nº de parcelas</label><input id="c-nparc" type="number" min="2" max="72" placeholder="Ex: 12" oninput="calcFaturaAuto()"/></div>
+            <div class="f"><label>Nº de parcelas</label><input id="c-nparc" type="number" min="2" max="72" placeholder="Ex: 12" oninput="calcFaturaAuto();updateParcelaInfo()"/></div>
             <div class="f"><label>1ª parcela (calculada)</label><input id="c-data1" type="month" placeholder="Automático" style="background:var(--surface2);color:var(--text2)"/></div>
           </div>
+          <span id="c-parcela-info" style="font-size:12px;color:var(--purple);margin-top:2px;display:none;font-weight:500"></span>
           <button class="btn btn-accent" onclick="addCompra()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar compra
           </button>
@@ -538,6 +691,19 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <label>Filtrar por comprador</label>
               <select id="filtro-pessoa" onchange="renderCompras()"><option value="">Todos</option></select>
             </div>
+          </div>
+          <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text2);white-space:nowrap">Ordenar:</label>
+            <select id="ordem-compras" onchange="renderCompras()" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px">
+              <option value="recente">Mais recente primeiro</option>
+              <option value="antiga">Mais antiga primeiro</option>
+              <option value="az">Nome A-Z</option>
+              <option value="za">Nome Z-A</option>
+              <option value="maior">Maior valor primeiro</option>
+              <option value="menor">Menor valor primeiro</option>
+              <option value="cartao">Agrupado por cartão</option>
+              <option value="pessoa">Agrupado por comprador</option>
+            </select>
           </div>
           <div id="compras-list"></div>
         </div>
@@ -588,7 +754,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           Compradores
         </div>
-        <div class="card" style="margin-bottom:1rem">
+        <div class="card" id="pessoa-form-card" style="margin-bottom:1rem">
           <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo Comprador</div>
           <div class="alert" id="al-pessoa"></div>
           <div class="form-grid">
@@ -635,6 +801,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             <div class="f"><label>Dia vencimento</label><input id="cf-dia" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
             <div class="f"><label>Categoria</label>
               <select id="cf-cat" onchange="toggleCatOutro('cf-outro-wrap',this)">
+              <option value="AGUA">ÁGUA</option>
               <option value="ALIMENTACAO">ALIMENTAÇÃO</option>
               <option value="ASSINATURAS">ASSINATURAS</option>
               <option value="CASA">CASA</option>
@@ -642,14 +809,15 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <option value="CONSTRUCAO">CONSTRUÇÃO</option>
               <option value="EDUCACAO">EDUCAÇÃO</option>
               <option value="ELETRONICOS">ELETRÔNICOS</option>
+              <option value="ENERGIA">ENERGIA</option>
               <option value="LAZER">LAZER</option>
               <option value="MERCADO">MERCADO</option>
+              <option value="OUTRO">OUTRO</option>
               <option value="SAUDE">SAÚDE</option>
               <option value="TRANSPORTE">TRANSPORTE</option>
               <option value="VESTUARIO">VESTUÁRIO</option>
               <option value="VIAGEM">VIAGEM</option>
-              <option value="OUTRO">OUTRO</option>
-              </select>
+        </select>
             </div>
           </div>
           <div class="f" id="cf-outro-wrap" style="display:none;margin-top:0">
@@ -674,84 +842,69 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
       <div class="page" id="page-relatorio">
         <div class="page-title">
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          Relatório em PDF
+          Relatório Mensal em PDF
         </div>
-
-        <!-- Tabs -->
-        <div style="display:flex;gap:8px;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:.75rem">
-          <button class="btn btn-accent" id="rel-tab-orcamento" onclick="switchRelTab('orcamento')">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Orçamento Mensal
-          </button>
-          <button class="btn" id="rel-tab-cartoes" onclick="switchRelTab('cartoes')">
-            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-            Compras por Cartão
-          </button>
+        <div class="card">
+          <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Configurar Relatório</div>
+          <div class="form-grid cols3">
+            <div class="f"><label>Mês de referência</label><input type="month" id="rel-mes"/></div>
+            <div class="f"><label>Comprador</label>
+              <select id="rel-pessoa">
+                <option value="">Todos os compradores</option>
+              </select>
+            </div>
+            <div class="f"><label>Incluir</label>
+              <select id="rel-incluir">
+                <option value="tudo">Tudo (contas + faturas + compras)</option>
+                <option value="resumo">Só resumo e saldo</option>
+                <option value="compras">Só compras detalhadas</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-accent" onclick="gerarPDF()">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Gerar PDF
+            </button>
+            <button class="btn" onclick="previewRelatorio()">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Pré-visualizar
+            </button>
+          </div>
         </div>
-
-        <!-- Aba Orçamento -->
-        <div id="rel-panel-orcamento">
+        <div id="rel-preview" style="margin-top:1rem;display:none">
           <div class="card">
-            <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Configurar</div>
-            <div class="form-grid cols3">
-              <div class="f"><label>Mês de referência</label><input type="month" id="rel-mes"/></div>
-              <div class="f"><label>Comprador</label><select id="rel-pessoa"><option value="">Todos</option></select></div>
-              <div class="f"><label>Incluir</label>
-                <select id="rel-incluir">
-                  <option value="tudo">Tudo (contas + faturas + compras)</option>
-                  <option value="resumo">Só resumo e saldo</option>
-                  <option value="compras">Só compras detalhadas</option>
-                </select>
-              </div>
-            </div>
-            <div style="margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-accent" onclick="gerarPDF()">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Gerar PDF
-              </button>
-              <button class="btn" onclick="previewRelatorio()">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Pré-visualizar
-              </button>
-            </div>
-          </div>
-          <div id="rel-preview" style="margin-top:1rem;display:none">
-            <div class="card">
-              <div class="card-title"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Pré-visualização</div>
-              <div id="rel-preview-content"></div>
-            </div>
+            <div class="card-title"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Pré-visualização</div>
+            <div id="rel-preview-content"></div>
           </div>
         </div>
 
-        <!-- Aba Compras por Cartão -->
-        <div id="rel-panel-cartoes" style="display:none">
-          <div class="card">
-            <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Configurar</div>
-            <div class="form-grid cols3">
-              <div class="f"><label>Mês de referência</label><input type="month" id="relc-mes"/></div>
-              <div class="f"><label>Cartão</label>
-                <select id="relc-cartao"><option value="">Todos os cartões</option></select>
-              </div>
-              <div class="f"><label>Comprador</label>
-                <select id="relc-pessoa"><option value="">Todos</option></select>
-              </div>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Compras por Cartão</div>
+          <div class="form-grid cols3">
+            <div class="f"><label>Mês de referência</label><input type="month" id="relc-mes"/></div>
+            <div class="f"><label>Cartão</label>
+              <select id="relc-cartao"><option value="">Todos os cartões</option></select>
             </div>
-            <div style="margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-accent" onclick="gerarPDFCartoes()">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Gerar PDF
-              </button>
-              <button class="btn" onclick="previewRelCartoes()">
-                <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Pré-visualizar
-              </button>
+            <div class="f"><label>Comprador</label>
+              <select id="relc-pessoa"><option value="">Todos os compradores</option></select>
             </div>
           </div>
-          <div id="relc-preview" style="margin-top:1rem;display:none">
-            <div class="card">
-              <div class="card-title"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Pré-visualização</div>
-              <div id="relc-preview-content"></div>
-            </div>
+          <div style="margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-accent" onclick="gerarPDFCartoes()">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Gerar PDF por Cartão
+            </button>
+            <button class="btn" onclick="previewRelCartoes()">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Pré-visualizar
+            </button>
+          </div>
+        </div>
+        <div id="relc-preview" style="margin-top:1rem;display:none">
+          <div class="card">
+            <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pré-visualização — Compras por Cartão</div>
+            <div id="relc-preview-content"></div>
           </div>
         </div>
       </div>
@@ -850,6 +1003,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
     <div class="form-grid">
       <div class="f"><label>Categoria</label>
         <select id="ec-cat" onchange="toggleCatOutro('ec-outro-wrap',this)">
+              <option value="AGUA">ÁGUA</option>
               <option value="ALIMENTACAO">ALIMENTAÇÃO</option>
               <option value="ASSINATURAS">ASSINATURAS</option>
               <option value="CASA">CASA</option>
@@ -857,14 +1011,15 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <option value="CONSTRUCAO">CONSTRUÇÃO</option>
               <option value="EDUCACAO">EDUCAÇÃO</option>
               <option value="ELETRONICOS">ELETRÔNICOS</option>
+              <option value="ENERGIA">ENERGIA</option>
               <option value="LAZER">LAZER</option>
               <option value="MERCADO">MERCADO</option>
+              <option value="OUTRO">OUTRO</option>
               <option value="SAUDE">SAÚDE</option>
               <option value="TRANSPORTE">TRANSPORTE</option>
               <option value="VESTUARIO">VESTUÁRIO</option>
               <option value="VIAGEM">VIAGEM</option>
-              <option value="OUTRO">OUTRO</option>
-              </select>
+        </select>
       </div>
       <div class="f" id="ec-outro-wrap" style="display:none"><label>Nome da categoria</label><input id="ec-outro-desc" class="upper" placeholder="Ex: PET"/></div>
     </div>
@@ -935,6 +1090,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
       <div class="f"><label>Dia vencimento</label><input id="ecf-dia" type="number" min="1" max="31"/></div>
       <div class="f"><label>Categoria</label>
         <select id="ecf-cat" onchange="toggleCatOutro('ecf-outro-wrap',this)">
+              <option value="AGUA">ÁGUA</option>
               <option value="ALIMENTACAO">ALIMENTAÇÃO</option>
               <option value="ASSINATURAS">ASSINATURAS</option>
               <option value="CASA">CASA</option>
@@ -942,14 +1098,15 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <option value="CONSTRUCAO">CONSTRUÇÃO</option>
               <option value="EDUCACAO">EDUCAÇÃO</option>
               <option value="ELETRONICOS">ELETRÔNICOS</option>
+              <option value="ENERGIA">ENERGIA</option>
               <option value="LAZER">LAZER</option>
               <option value="MERCADO">MERCADO</option>
+              <option value="OUTRO">OUTRO</option>
               <option value="SAUDE">SAÚDE</option>
               <option value="TRANSPORTE">TRANSPORTE</option>
               <option value="VESTUARIO">VESTUÁRIO</option>
               <option value="VIAGEM">VIAGEM</option>
-              <option value="OUTRO">OUTRO</option>
-              </select>
+        </select>
       </div>
     </div>
     <div class="f" id="ecf-outro-wrap" style="display:none">
@@ -992,6 +1149,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
       <div class="f"><label>Dia vencimento</label><input id="nco-dia" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
       <div class="f"><label>Categoria</label>
         <select id="nco-cat" onchange="toggleNcoCatOutro(this)">
+              <option value="AGUA">ÁGUA</option>
               <option value="ALIMENTACAO">ALIMENTAÇÃO</option>
               <option value="ASSINATURAS">ASSINATURAS</option>
               <option value="CASA">CASA</option>
@@ -999,14 +1157,15 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
               <option value="CONSTRUCAO">CONSTRUÇÃO</option>
               <option value="EDUCACAO">EDUCAÇÃO</option>
               <option value="ELETRONICOS">ELETRÔNICOS</option>
+              <option value="ENERGIA">ENERGIA</option>
               <option value="LAZER">LAZER</option>
               <option value="MERCADO">MERCADO</option>
+              <option value="OUTRO">OUTRO</option>
               <option value="SAUDE">SAÚDE</option>
               <option value="TRANSPORTE">TRANSPORTE</option>
               <option value="VESTUARIO">VESTUÁRIO</option>
               <option value="VIAGEM">VIAGEM</option>
-              <option value="OUTRO">OUTRO</option>
-              </select>
+        </select>
       </div>
     </div>
     <div class="f" id="nco-outro-wrap" style="display:none">
@@ -1092,6 +1251,24 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
   </div>
 </div>
 
+<!-- Modal Economia -->
+<div class="modal-overlay" id="modal-economia">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Economia / Reserva</div>
+    <input type="hidden" id="meco-pessoaid"/>
+    <input type="hidden" id="meco-mes"/>
+    <p id="meco-nome" style="font-weight:600;margin-bottom:1rem"></p>
+    <div class="f">
+      <label>Valor a economizar neste mês (R$)</label>
+      <input id="meco-valor" placeholder="0,00" oninput="maskMoney(this)"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-economia')">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveEconomia()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Renda -->
 <div class="modal-overlay" id="modal-renda">
   <div class="modal" style="max-width:360px">
@@ -1110,6 +1287,42 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
   </div>
 </div>
 
+<!-- Modal Setup Comprador -->
+<div class="modal-overlay" id="modal-setup-comprador">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Configurar orçamento de <span id="setup-nome"></span>?
+    </div>
+    <input type="hidden" id="setup-pessoaid"/>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Deseja configurar as informações de orçamento para <strong id="setup-nome2"></strong> agora?</p>
+    <div class="form-grid">
+      <div class="f">
+        <label>Renda mensal (R$)</label>
+        <input id="setup-renda" placeholder="0,00" oninput="maskMoney(this)"/>
+      </div>
+      <div class="f">
+        <label>Mês de referência</label>
+        <input type="month" id="setup-mes"/>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">Contas Fixas</span>
+        <button class="btn btn-sm btn-accent" type="button" onclick="setupAddConta()">+ Adicionar conta</button>
+      </div>
+      <div id="setup-contas-wrap"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-setup-comprador')">Pular por agora</button>
+      <button class="btn btn-accent" onclick="saveSetupComprador()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar e configurar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ FIREBASE + APP SCRIPT ══════════════ -->
 <script type="module">
 // ══════════════════════════════════════════════════════
@@ -1124,7 +1337,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB5OvKJWjBjF7lf1dDmNN1kPOWeA08-ymk",
+  apiKey: "AIzaSyCojGsmro4FnWviFYBP5jdaDsVkfFN4WcI",
   authDomain: "controle-financeiro-abb85.firebaseapp.com",
   projectId: "controle-financeiro-abb85",
   storageBucket: "controle-financeiro-abb85.firebasestorage.app",
@@ -1158,9 +1371,6 @@ let S = {
   statusContas: {} // {contaId_mes: {status, valor}}
 };
 let SESSION = null;
-function saveSession(s){ try{ localStorage.setItem('_sess', JSON.stringify(s)); }catch(e){} }
-function loadSession(){ try{ return JSON.parse(localStorage.getItem('_sess')||'null'); }catch(e){ return null; } }
-function clearSession(){ try{ localStorage.removeItem('_sess'); }catch(e){} }
 
 // ── Sync helpers ──
 function setSyncing(v){
@@ -1225,7 +1435,23 @@ async function loadAll(){
   if(pessoas.length) S.pessoas = pessoas;
   if(compras.length) S.compras = compras;
   if(contasFixas.length) S.contasFixas = contasFixas;
-  if(usuarios.length) S.usuarios = usuarios;
+
+  // ── Garante que a lista de usuários é válida ──
+  // Só substitui o padrão se o Firestore retornou usuários com login e senha válidos
+  const usuariosValidos = usuarios.filter(u => u && u.login && u.senha && u.role);
+  if(usuariosValidos.length) {
+    S.usuarios = usuariosValidos;
+  }
+  // Garante que SEMPRE existe pelo menos um ADM com login 'admin'
+  // (evita ficar trancado fora do sistema)
+  const temAdmin = S.usuarios.some(u => u.role === 'adm');
+  if(!temAdmin){
+    const adminPadrao = {id:'adm1', login:'admin', senha:'admin123', role:'adm', compradores:[], nome:'ADMINISTRADOR'};
+    S.usuarios.unshift(adminPadrao);
+    // Persiste o admin no Firestore se estiver online
+    await fbSet('usuarios', 'adm1', adminPadrao).catch(()=>{});
+  }
+
   if(meta){
     if(meta.rendas) S.rendas = meta.rendas;
     if(meta.statusContas) S.statusContas = meta.statusContas;
@@ -1277,16 +1503,40 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 window.doLogin = function(){
   const login = document.getElementById('li-user').value.trim().toLowerCase();
   const senha = document.getElementById('li-pass').value;
-  const u = S.usuarios.find(u=>u.login.toLowerCase()===login && u.senha===senha);
-  if(!u){ document.getElementById('login-err').style.display='block'; return; }
-  document.getElementById('login-err').style.display='none';
+  const errEl = document.getElementById('login-err');
+
+  // Diagnóstico: verifica se há usuários carregados
+  if(!S.usuarios || S.usuarios.length === 0){
+    errEl.textContent = 'Nenhum usuário encontrado. Tente recarregar a página.';
+    errEl.style.display='block'; return;
+  }
+
+  const u = S.usuarios.find(u => u.login && u.login.toLowerCase() === login && u.senha === senha);
+  if(!u){
+    // Verifica se o login existe mas a senha está errada
+    const loginExiste = S.usuarios.find(u => u.login && u.login.toLowerCase() === login);
+    errEl.textContent = loginExiste ? 'Senha incorreta.' : 'Usuário não encontrado.';
+    errEl.style.display='block'; return;
+  }
+  errEl.style.display='none';
   SESSION = {userId:u.id, login:u.login, role:u.role, compradores:u.compradores||[], nome:u.nome||u.login};
-  saveSession(SESSION);
+  sessionStorage.setItem('session', JSON.stringify(SESSION));
   setupUI();
+}
+
+// ── Função de reset de emergência (use no console do navegador se necessário) ──
+// Digite no console: resetAdmin()
+window.resetAdmin = async function(){
+  const admin = {id:'adm1', login:'admin', senha:'admin123', role:'adm', compradores:[], nome:'ADMINISTRADOR'};
+  const idx = S.usuarios.findIndex(u=>u.id==='adm1'||u.login==='admin');
+  if(idx>=0) S.usuarios[idx]=admin; else S.usuarios.unshift(admin);
+  await fbSet('usuarios','adm1',admin).catch(()=>{});
+  alert('Admin restaurado! Login: admin | Senha: admin123');
+  console.log('Usuários atuais:', S.usuarios);
 }
 window.doLogout = function(){
   SESSION = null;
-  clearSession();
+  sessionStorage.removeItem('session');
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
@@ -1297,7 +1547,7 @@ function setupUI(){
   document.getElementById('app-screen').style.display='block';
   const av = document.getElementById('tb-avatar');
   av.textContent = initials(SESSION.nome||SESSION.login);
-  av.style.background = isAdm ? '#854f0b' : '#185fa5';
+  av.style.background = isAdm ? '#6d28d9' : '#185fa5';
   document.getElementById('tb-username').textContent = SESSION.login;
   const rt = document.getElementById('tb-role');
   rt.textContent = isAdm ? 'ADM' : 'Usuário';
@@ -1308,11 +1558,18 @@ function setupUI(){
   document.getElementById('nav-label-cfg') && (document.getElementById('nav-label-cfg').style.display = '');
   document.getElementById('nav-contas-fixas').style.display = '';
   document.getElementById('nav-relatorio').style.display = '';
+  // Itens do popup "Mais" (mobile)
+  document.getElementById('mais-contas-fixas').style.display = '';
+  document.getElementById('mais-relatorio').style.display = '';
+  document.getElementById('mais-usuarios').style.display = isAdm?'':'none';
   ['nav-compras','nav-cartoes','nav-pessoas'].forEach(id=>{
     document.getElementById(id).style.display = '';
   });
   document.getElementById('nav-label-cad').style.display = '';
   document.getElementById('nav-orcamento').style.display = '';
+  // Oculta formulário de cadastrar comprador para não-ADM
+  const pessoaForm = document.getElementById('pessoa-form-card');
+  if(pessoaForm) pessoaForm.style.display = isAdm ? '' : 'none';
   goPage('faturas');
   render();
 }
@@ -1323,9 +1580,28 @@ window.goPage = function(name, silent){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   const pg = document.getElementById('page-'+name);
   if(pg) pg.classList.add('active');
-  const btn = document.querySelector(`.nav-item[onclick="goPage('${name}')"]`);
-  if(btn) btn.classList.add('active');
+  // Marca ativo em ambas as navs (sidebar desktop + bottom-nav mobile)
+  document.querySelectorAll(`.nav-item[onclick="goPage('${name}')"]`).forEach(b=>b.classList.add('active'));
+  // Mobile: marca "Mais" ativo quando a página pertence ao grupo administrativo
+  const maisGroup = ['contasfixas','relatorio','usuarios'];
+  const maisBtn = document.getElementById('nav-mais');
+  if(maisBtn) maisBtn.classList.toggle('active', maisGroup.includes(name));
+  closeMaisMenu();
   if(!silent) renderPage(name);
+}
+
+window.toggleMaisMenu = function(){
+  const popup = document.getElementById('mais-popup');
+  const backdrop = document.getElementById('mais-backdrop');
+  const open = popup.style.display !== 'none';
+  popup.style.display = open ? 'none' : 'block';
+  backdrop.style.display = open ? 'none' : 'block';
+}
+window.closeMaisMenu = function(){
+  const popup = document.getElementById('mais-popup');
+  const backdrop = document.getElementById('mais-backdrop');
+  if(popup) popup.style.display = 'none';
+  if(backdrop) backdrop.style.display = 'none';
 }
 
 function renderPage(name){
@@ -1363,6 +1639,7 @@ function buildSelects(){
     ecCartaoEl.addEventListener('change', calcFaturaAutoEdit);
     ecCartaoEl._faturaListenerSet = true;
   }
+  const cartoesOrdenados = [...S.cartoes].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   const selIds = ['c-cartao','ec-cartao','filtro-cartao'];
   selIds.forEach(id=>{
     const el = document.getElementById(id);
@@ -1370,7 +1647,7 @@ function buildSelects(){
     const cur = el.value;
     el.innerHTML = '<option value="">Selecione...</option>';
     if(id==='filtro-cartao') el.innerHTML = '<option value="">Todos</option>';
-    S.cartoes.forEach(c=>{ el.innerHTML += `<option value="${c.id}">${c.nome}</option>` });
+    cartoesOrdenados.forEach(c=>{ el.innerHTML += `<option value="${c.id}">${c.nome}</option>` });
     el.value = cur;
   });
   const pessoaSelIds = ['c-pessoa','ec-pessoa','filtro-pessoa','cf-pessoa','ecf-pessoa'];
@@ -1394,8 +1671,36 @@ window.renderFaturas = function(){
   if(!document.getElementById('mes-ref').value) document.getElementById('mes-ref').value = mes;
   const isAdm = SESSION && SESSION.role==='adm';
   const allowed = isAdm ? null : (SESSION.compradores.length ? SESSION.compradores : null);
+  const ordemFat = document.getElementById('ordem-faturas')?.value || 'maior';
   let totalGeral = 0;
-  const html = S.cartoes.map(cartao=>{
+  // Calcular totais por cartão antes de ordenar
+  const cartoesComTotal = S.cartoes.map(cartao=>{
+    const compras = S.compras.filter(c=>c.cartaoId===cartao.id);
+    let total = 0;
+    compras.forEach(c=>{
+      if(allowed && !allowed.includes(c.pessoaId)) return;
+      let vm = 0;
+      if(c.parcelado && c.data1){
+        const [py,pm]=c.data1.split('-').map(Number);
+        const [cy,cm]=mes.split('-').map(Number);
+        const diff=(cy-py)*12+(cm-pm);
+        if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+      } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+        const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+        if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
+      } else {
+        const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+        if(compMes===mes) vm=c.valor;
+      }
+      total+=vm;
+    });
+    return {cartao, total};
+  });
+  if(ordemFat==='maior') cartoesComTotal.sort((a,b)=>b.total-a.total);
+  else if(ordemFat==='menor') cartoesComTotal.sort((a,b)=>a.total-b.total);
+  else if(ordemFat==='az') cartoesComTotal.sort((a,b)=>a.cartao.nome.localeCompare(b.cartao.nome));
+  else if(ordemFat==='za') cartoesComTotal.sort((a,b)=>b.cartao.nome.localeCompare(a.cartao.nome));
+  const html = cartoesComTotal.map(({cartao})=>{
     const compras = S.compras.filter(c=>c.cartaoId===cartao.id);
     let total = 0;
     const porPessoa = {};
@@ -1410,6 +1715,12 @@ window.renderFaturas = function(){
         if(diff>=0 && diff<c.parcelas){
           vm = c.valor/c.parcelas;
           parcDesc = `Parcela ${diff+1}/${c.parcelas}`;
+        }
+      } else if(c.categoria === 'ASSINATURAS' && !c.parcelado){
+        const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
+        if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)){
+          vm = c.valor;
+          parcDesc = 'Recorrente';
         }
       } else {
         const compMes = c.dataCompra ? c.dataCompra.slice(0,7) : c.data1;
@@ -1453,7 +1764,7 @@ window.renderFaturas = function(){
             </div>`).join('')}
         </div>`:''}
         ${itens.length?`
-        <button class="expand-btn" onclick="toggleFaturaItens('${cid}',this)">▼ Ver compras (${itens.length})</button>
+        <button class="expand-btn" onclick="toggleFaturaItens(event,'${cid}',this)">▼ Ver compras (${itens.length})</button>
         <div class="fatura-items" id="${cid}">
           ${itens.map(it=>`
             <div class="fatura-item">
@@ -1475,10 +1786,12 @@ window.renderFaturas = function(){
   `;
 }
 
-window.toggleFaturaItens = function(id,btn){
+window.toggleFaturaItens = function(e, id, btn){
+  e.stopPropagation();
   const el = document.getElementById(id);
   const open = el.classList.toggle('open');
-  btn.textContent = (open?'▲ Ocultar compras':'▼ Ver compras') + btn.textContent.replace(/[▲▼].*?(compras)/,'$1');
+  const count = btn.textContent.match(/\d+/)?.[0]||'';
+  btn.textContent = open ? `▲ Ocultar compras (${count})` : `▼ Ver compras (${count})`;
 }
 
 // ── COMPRAS ──
@@ -1487,24 +1800,24 @@ window.toggleParcelEdit = function(cb){ document.getElementById('ec-parc-fields'
 
 // ── Fatura auto-calculation helper ──
 function calcFaturaDoCartao(cartaoId, dataCompraStr){
-  // Returns the YYYY-MM of the fatura where this purchase will appear
-  // Logic: if purchase date <= diaFecha, goes to current month's fatura
-  //        if purchase date > diaFecha, goes to next month's fatura
   const cartao = S.cartoes.find(c=>c.id===cartaoId);
   if(!dataCompraStr) return getMesAtual();
   const [yyyy, mm, dd] = dataCompraStr.split('-').map(Number);
   if(!cartao || !cartao.diaFecha) {
-    // No fechamento configured — fatura = same month as purchase
-    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+    // Sem fechamento: fatura vence no mês seguinte ao da compra
+    // mm (1-based do split) usado como índice JS já aponta para o mês seguinte
+    const next = new Date(yyyy, mm, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   }
   const diaFecha = cartao.diaFecha;
   if(dd <= diaFecha){
-    // Before or on closing date — goes into this month's fatura
-    return `${yyyy}-${String(mm).padStart(2,'0')}`;
+    // Antes ou no fechamento: fatura vence no mês seguinte
+    const next = new Date(yyyy, mm, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   } else {
-    // After closing date — goes into next month's fatura
-    const nextDate = new Date(yyyy, mm, 1); // mm is already 0-indexed + 1 = next month
-    return `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}`;
+    // Após o fechamento: fatura vence em dois meses
+    const next = new Date(yyyy, mm + 1, 1);
+    return `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}`;
   }
 }
 
@@ -1577,35 +1890,73 @@ window.renderCompras = function(){
   const filtroCartao = document.getElementById('filtro-cartao')?.value || '';
   const filtroPessoa = document.getElementById('filtro-pessoa')?.value || '';
   const busca = (document.getElementById('busca-compra')?.value || '').toLowerCase();
+  const ordem = document.getElementById('ordem-compras')?.value || 'recente';
   let lista = [...S.compras];
   if(!isAdm && SESSION.compradores.length) lista = lista.filter(c=>SESSION.compradores.includes(c.pessoaId));
   if(filtroCartao) lista = lista.filter(c=>c.cartaoId===filtroCartao);
   if(filtroPessoa) lista = lista.filter(c=>c.pessoaId===filtroPessoa);
   if(busca) lista = lista.filter(c=>c.descricao.toLowerCase().includes(busca));
-  lista.sort((a,b)=>b.id.localeCompare(a.id));
   if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhuma compra encontrada</div>'; return; }
-  el.innerHTML = lista.map(c=>{
+
+  const renderItem = c => {
     const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
     const pessoa = S.pessoas.find(p=>p.id===c.pessoaId);
     const parcStr = c.parcelado ? `${c.parcelas}x de ${fmtMoney(c.valor/c.parcelas)} · 1ª ${fmtMes(c.data1)}` : 'À vista';
     const dataDisplay = c.dataCompraFull ? new Date(c.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(c.dataCompra||c.data1);
     const catStr = c.categoria ? ` · ${c.categoria}` : '';
+    const isAssin = c.categoria === 'ASSINATURAS' && !c.parcelado;
+    const recBadge = isAssin ? '<span style="font-size:10px;background:#2a1a4a;color:#a78bfa;border-radius:10px;padding:1px 7px;font-weight:600;margin-left:5px">Recorrente</span>' : '';
+    const cancelInfo = isAssin && c.canceladoEm ? `<span style="font-size:11px;color:var(--text3);margin-left:4px">Cancelada ${fmtMes(c.canceladoEm)}</span>` : '';
     return `<div class="item-row">
       <div class="item-left">
         <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
         <div>
-          <div class="item-name">${c.descricao}</div>
+          <div class="item-name">${c.descricao}${recBadge}${cancelInfo}</div>
           <div class="item-sub">${dataDisplay} · ${cartao?.nome||'?'} · ${pessoa?.nome||'?'} · ${parcStr}${catStr}</div>
         </div>
       </div>
       <div class="item-actions">
         <span class="item-val">${fmtMoney(c.valor)}</span>
+        ${isAssin && !c.canceladoEm ? `<button class="btn btn-sm" style="border-color:#6d28d9;color:#a78bfa;font-size:11px" onclick="cancelarAssinatura('${c.id}')">Cancelar</button>` : ''}
         <button class="btn btn-sm btn-dup" onclick="duplicarCompra('${c.id}')" title="Duplicar">⊕</button>
         <button class="btn btn-sm btn-edit" onclick="openEditCompra('${c.id}')">Editar</button>
         <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  if(ordem === 'cartao' || ordem === 'pessoa') {
+    const getKey = c => ordem === 'cartao'
+      ? (S.cartoes.find(k=>k.id===c.cartaoId)?.nome || '?')
+      : (S.pessoas.find(p=>p.id===c.pessoaId)?.nome || '?');
+    const grupos = {};
+    lista.forEach(c => {
+      const k = getKey(c);
+      if(!grupos[k]) grupos[k] = [];
+      grupos[k].push(c);
+    });
+    el.innerHTML = Object.keys(grupos).sort((a,b)=>a.localeCompare(b)).map(key => {
+      const itens = grupos[key];
+      itens.sort((a,b)=>b.id.localeCompare(a.id));
+      const subtotal = itens.reduce((s,c)=>s+c.valor,0);
+      const cor = ordem === 'cartao'
+        ? (S.cartoes.find(k=>k.nome===key)?.cor || '#888')
+        : (S.pessoas.find(p=>p.nome===key)?.cor || '#888');
+      return `<div style="margin-bottom:4px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;border-left:3px solid ${cor}">
+        <span style="color:var(--text)">${key}</span>
+        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${fmtMoney(subtotal)}</span>
+      </div>` + itens.map(renderItem).join('');
+    }).join('');
+    return;
+  }
+
+  if(ordem === 'recente') lista.sort((a,b)=>b.id.localeCompare(a.id));
+  else if(ordem === 'antiga') lista.sort((a,b)=>a.id.localeCompare(b.id));
+  else if(ordem === 'az') lista.sort((a,b)=>a.descricao.localeCompare(b.descricao));
+  else if(ordem === 'za') lista.sort((a,b)=>b.descricao.localeCompare(a.descricao));
+  else if(ordem === 'maior') lista.sort((a,b)=>b.valor-a.valor);
+  else if(ordem === 'menor') lista.sort((a,b)=>a.valor-b.valor);
+  el.innerHTML = lista.map(renderItem).join('');
 }
 
 window.duplicarCompra = async function(id){
@@ -1637,7 +1988,7 @@ window.openEditCompra = function(id){
   if(c.data1){ const [y,m]=c.data1.split('-'); efInfo.textContent=`→ Fatura de ${m}/${y}`; efInfo.style.display='block'; }
   else efInfo.style.display='none';
   // Categoria
-  const knownCats = ['ALIMENTACAO','SAUDE','EDUCACAO','TRANSPORTE','LAZER','VESTUARIO','MERCADO','ELETRONICOS','CASA','VIAGEM','ASSINATURAS','OUTRO'];
+  const knownCats = ['AGUA','ALIMENTACAO','ASSINATURAS','CASA','COMBUSTIVEL','CONSTRUCAO','EDUCACAO','ELETRONICOS','ENERGIA','LAZER','MERCADO','OUTRO','SAUDE','TRANSPORTE','VESTUARIO','VIAGEM'];
   const ecCat = document.getElementById('ec-cat');
   const ecOutroWrap = document.getElementById('ec-outro-wrap');
   if(c.categoria && !knownCats.includes(c.categoria)){
@@ -1748,7 +2099,8 @@ window.removeCartao = async function(id){
 window.renderCartoes = function(){
   const el = document.getElementById('cartoes-list');
   if(!S.cartoes.length){ el.innerHTML='<div class="list-empty">Nenhum cartão</div>'; return; }
-  el.innerHTML = S.cartoes.map(c=>{
+  const lista = [...S.cartoes].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  el.innerHTML = lista.map(c=>{
     const infos = [];
     if(c.limite) infos.push(`Limite: ${fmtMoney(c.limite)}`);
     if(c.diaVenc) infos.push(`Vence: dia ${c.diaVenc}`);
@@ -1780,7 +2132,14 @@ window.addPessoa = async function(){
   await fbSet('pessoas', id, novo);
   document.getElementById('p-nome').value='';
   render();
-  showAlert('al-pessoa','Comprador cadastrado!');
+  document.getElementById('setup-pessoaid').value = id;
+  document.getElementById('setup-nome').textContent = nome;
+  document.getElementById('setup-nome2').textContent = nome;
+  document.getElementById('setup-mes').value = getMesAtual();
+  document.getElementById('setup-renda').value = '';
+  document.getElementById('setup-contas-wrap').innerHTML = '';
+  window.setupContaIdx = 0;
+  openModal('modal-setup-comprador');
 }
 
 window.openEditPessoa = function(id){
@@ -1803,6 +2162,54 @@ window.saveEditPessoa = async function(){
   closeModal('modal-pessoa');
   render();
 }
+
+window.setupContaIdx = 0;
+window.setupAddConta = function(){
+  const idx = window.setupContaIdx++;
+  const catOpts = '<option value="AGUA">ÁGUA</option><option value="ALIMENTACAO">ALIMENTAÇÃO</option><option value="ASSINATURAS">ASSINATURAS</option><option value="CASA">CASA</option><option value="COMBUSTIVEL">COMBUSTÍVEL</option><option value="CONSTRUCAO">CONSTRUÇÃO</option><option value="EDUCACAO">EDUCAÇÃO</option><option value="ELETRONICOS">ELETRÔNICOS</option><option value="ENERGIA">ENERGIA</option><option value="LAZER">LAZER</option><option value="MERCADO">MERCADO</option><option value="OUTRO">OUTRO</option><option value="SAUDE">SAÚDE</option><option value="TRANSPORTE">TRANSPORTE</option><option value="VESTUARIO">VESTUÁRIO</option><option value="VIAGEM">VIAGEM</option>';
+  const row = document.createElement('div');
+  row.id = `setup-cf-row-${idx}`;
+  row.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;position:relative';
+  row.innerHTML = `<button type="button" onclick="document.getElementById('setup-cf-row-${idx}').remove()" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0">✕</button>
+    <div class="form-grid cols3" style="margin-bottom:8px">
+      <div class="f"><label>Descrição</label><input id="setup-cf-desc-${idx}" class="upper" placeholder="Ex: ALUGUEL"/></div>
+      <div class="f"><label>Valor (R$)</label><input id="setup-cf-valor-${idx}" placeholder="0,00" oninput="maskMoney(this)"/></div>
+      <div class="f"><label>Dia vencimento</label><input id="setup-cf-dia-${idx}" type="number" min="1" max="31" placeholder="Ex: 10"/></div>
+    </div>
+    <div class="form-grid">
+      <div class="f"><label>Categoria</label><select id="setup-cf-cat-${idx}">${catOpts}</select></div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <div class="checkbox-row" style="margin:0"><input type="checkbox" id="setup-cf-fixa-${idx}" checked/><label for="setup-cf-fixa-${idx}">Despesa fixa</label></div>
+      </div>
+    </div>`;
+  document.getElementById('setup-contas-wrap').appendChild(row);
+};
+
+window.saveSetupComprador = async function(){
+  const pessoaId = document.getElementById('setup-pessoaid').value;
+  const mes = document.getElementById('setup-mes').value;
+  const renda = parseMoney(document.getElementById('setup-renda').value);
+  if(mes && renda > 0){
+    S.rendas[`${pessoaId}_${mes}`] = renda;
+    await saveMeta();
+  }
+  for(let i = 0; i < window.setupContaIdx; i++){
+    const rowEl = document.getElementById(`setup-cf-row-${i}`);
+    if(!rowEl) continue;
+    const desc = document.getElementById(`setup-cf-desc-${i}`)?.value.trim();
+    const valor = parseMoney(document.getElementById(`setup-cf-valor-${i}`)?.value);
+    const dia = parseInt(document.getElementById(`setup-cf-dia-${i}`)?.value)||null;
+    const cat = document.getElementById(`setup-cf-cat-${i}`)?.value;
+    const fixa = document.getElementById(`setup-cf-fixa-${i}`)?.checked !== false;
+    if(!desc || valor <= 0) continue;
+    const id = uid();
+    const nova = {id, descricao:desc, valor, pessoaId, dia, categoria:cat, fixa};
+    S.contasFixas.push(nova);
+    await fbSet('contasFixas', id, nova);
+  }
+  closeModal('modal-setup-comprador');
+  render();
+};
 
 window.removePessoa = async function(id){
   if(!confirm('Remover este comprador?')) return;
@@ -1868,7 +2275,7 @@ window.openEditContaFixa = function(id){
   document.getElementById('ecf-dia').value = c.dia||'';
   document.getElementById('ecf-fixa').checked = c.fixa!==false;
   // Handle categoria
-  const knownCats = ['ENERGIA','AGUA','INTERNET','SAUDE','EDUCACAO','TRANSPORTE','ALIMENTACAO','LAZER','OUTRO'];
+  const knownCats = ['AGUA','ALIMENTACAO','ASSINATURAS','CASA','COMBUSTIVEL','CONSTRUCAO','EDUCACAO','ELETRONICOS','ENERGIA','LAZER','MERCADO','OUTRO','SAUDE','TRANSPORTE','VESTUARIO','VIAGEM'];
   const sel = document.getElementById('ecf-cat');
   const wrap = document.getElementById('ecf-outro-wrap');
   if(knownCats.includes(c.categoria)){
@@ -1938,6 +2345,8 @@ window.renderContasFixas = function(){
 }
 
 // ── ORÇAMENTO ──
+window.orcOrdem = {};
+window.setOrcOrdem = function(pessoaId, val){ window.orcOrdem[pessoaId]=val; renderOrcamento(); };
 window.renderOrcamento = function(){
   const mes = document.getElementById('orc-mes')?.value || getMesAtual();
   if(!document.getElementById('orc-mes').value) document.getElementById('orc-mes').value = mes;
@@ -1956,6 +2365,9 @@ window.renderOrcamento = function(){
       const [cy,cm]=mes.split('-').map(Number);
       const diff=(cy-py)*12+(cm-pm);
       if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+    } else if(c.categoria === 'ASSINATURAS' && !c.parcelado){
+      const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
+      if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)) vm = c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
@@ -1974,22 +2386,32 @@ window.renderOrcamento = function(){
   const cards = pessoasOrc.map(p=>{
     const rKey = `${p.id}_${mes}`;
     const renda = S.rendas[rKey]||0;
+    const ecoKey = `eco_${p.id}_${mes}`;
+    const eco = S.rendas[ecoKey]||0;
     const fatura = faturasPorPessoa[p.id]||0;
 
     // Contas desta pessoa: fixas sempre aparecem, não-fixas só no mês de registro
     const minhas = S.contasFixas.filter(c=>{
       if(c.pessoaId!==p.id) return false;
-      if(c.fixa===false) return false; // não-fixas não aparecem no orçamento automático
+      if(c.fixa===false) return false;
       return true;
     });
     const totalFixas = minhas.reduce((s,c)=>s+c.valor,0);
     const totalDespesas = totalFixas + fatura;
-    const saldo = renda - totalDespesas;
+    const saldo = renda - totalDespesas - eco;
 
-    const statusRows = minhas.map(c=>{
+    const ordOrc = window.orcOrdem[p.id] || 'venc';
+    const minhasOrd = [...minhas];
+    if(ordOrc==='az') minhasOrd.sort((a,b)=>a.descricao.localeCompare(b.descricao));
+    else if(ordOrc==='maior') minhasOrd.sort((a,b)=>b.valor-a.valor);
+    else if(ordOrc==='venc') minhasOrd.sort((a,b)=>(a.dia||999)-(b.dia||999));
+    else minhasOrd.sort((a,b)=>(a.categoria||'').localeCompare(b.categoria||''));
+
+    const statusRows = minhasOrd.map(c=>{
       const sKey = `${c.id}_${mes}`;
-      const st = S.statusContas[sKey]||{status:'ABERTO', valor:c.valor};
-      const curStatus = st.status||'ABERTO';
+      const stData = S.statusContas[sKey];
+      const curStatus = stData?.status || 'ABERTO';
+      const curValor = stData?.valor !== undefined ? stData.valor : c.valor;
       const hoje = new Date().getDate();
       const diasVenc = c.dia ? c.dia - hoje : null;
       let vencBadge = '';
@@ -1998,18 +2420,17 @@ window.renderOrcamento = function(){
         else if(diasVenc<=3) vencBadge=`<span class="venc-badge venc-breve">Vence em ${diasVenc}d</span>`;
         else vencBadge=`<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
       }
-      const esc = (s)=>s.replace(/'/g,"\'");
       return `<div class="contas-item">
         <div class="contas-item-left">
           <div class="contas-item-nome">${c.descricao}</div>
           <div class="contas-item-sub">Venc. dia ${c.dia||'?'} · ${c.categoria||''} ${vencBadge}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="contas-item-val">${fmtMoney(st.valor||c.valor)}</span>
+          <span class="contas-item-val">${fmtMoney(curValor)}</span>
           <div class="status-toggle">
-            <button class="st-btn ${curStatus==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('${c.id}','${mes}','ABERTO',${st.valor||c.valor})">Em Aberto</button>
-            <button class="st-btn ${curStatus==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('${c.id}','${mes}','PENDENTE',${st.valor||c.valor})">Pendente</button>
-            <button class="st-btn ${curStatus==='PAGO'?'active-pago':''}" onclick="setStatusInline('${c.id}','${mes}','PAGO',${st.valor||c.valor})">Pago</button>
+            <button class="st-btn ${curStatus==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('${c.id}','${mes}','ABERTO',${curValor})">Em Aberto</button>
+            <button class="st-btn ${curStatus==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('${c.id}','${mes}','PENDENTE',${curValor})">Pendente</button>
+            <button class="st-btn ${curStatus==='PAGO'?'active-pago':''}" onclick="setStatusInline('${c.id}','${mes}','PAGO',${curValor})">Pago</button>
           </div>
           <button class="btn btn-sm btn-edit" onclick="openEditContaFixa('${c.id}')">Editar</button>
           <button class="btn btn-sm btn-del" onclick="removeContaFixaOrc('${c.id}')">Remover</button>
@@ -2033,10 +2454,27 @@ window.renderOrcamento = function(){
       </div>
 
       <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Despesas</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span>Despesas</span>
+          <select style="font-size:11px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:'DM Sans',sans-serif" onchange="setOrcOrdem('${p.id}',this.value)">
+            <option value="cat" ${ordOrc==='cat'?'selected':''}>Por categoria</option>
+            <option value="az" ${ordOrc==='az'?'selected':''}>A-Z</option>
+            <option value="maior" ${ordOrc==='maior'?'selected':''}>Maior valor</option>
+            <option value="venc" ${ordOrc==='venc'?'selected':''}>Por vencimento</option>
+          </select>
+        </div>
         <button class="btn btn-sm btn-accent" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openNovaContaOrc('${p.id}')">+ Adicionar</button>
       </div>
       ${minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>'}
+
+      <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Economia / Reserva</span>
+        <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openEconomia('${p.id}','${mes}','${p.nome}',${eco})">Editar</button>
+      </div>
+      <div class="orc-row">
+        <div class="orc-row-name">Reserva do mês</div>
+        <div class="orc-row-val" style="color:var(--accent2)">${eco>0?fmtMoney(eco):'<span style="color:var(--text3);font-size:12px">Não definida</span>'}</div>
+      </div>
 
       <div class="orc-section">Cartões</div>
       ${(()=>{
@@ -2081,6 +2519,10 @@ window.renderOrcamento = function(){
         <div class="orc-row-name">Total despesas</div>
         <div class="orc-row-val expense">${fmtMoney(totalDespesas)}</div>
       </div>
+      ${eco>0?`<div class="orc-row">
+        <div class="orc-row-name">Economia / Reserva</div>
+        <div class="orc-row-val" style="color:var(--accent2)">-${fmtMoney(eco)}</div>
+      </div>`:''}
       <div class="orc-total-row">
         <div class="orc-total-label">Saldo</div>
         <div class="orc-total-val ${saldo>=0?'pos':'neg'}">${fmtMoney(saldo)}</div>
@@ -2100,6 +2542,7 @@ window.renderOrcamento = function(){
     const vals = meses6.map(m=>{
       const rk = `${p.id}_${m}`;
       const renda = S.rendas[rk]||0;
+      const eco = S.rendas[`eco_${p.id}_${m}`]||0;
       const fixas = S.contasFixas.filter(c=>c.pessoaId===p.id&&c.fixa!==false).reduce((s,c)=>s+c.valor,0);
       let fat=0;
       S.compras.forEach(c=>{
@@ -2110,13 +2553,16 @@ window.renderOrcamento = function(){
           const [cy2,cm2]=m.split('-').map(Number);
           const diff=(cy2-py)*12+(cm2-pm2);
           if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+        } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+          const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+          if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
           const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
           if(compMes===m) vm=c.valor;
         }
         fat+=vm;
       });
-      return {m, saldo:renda-fixas-fat, renda, desp:fixas+fat};
+      return {m, saldo:renda-fixas-fat-eco, renda, desp:fixas+fat};
     });
     const maxAbs = Math.max(...vals.map(v=>Math.abs(v.saldo)),1);
     const bars = vals.map(v=>{
@@ -2141,6 +2587,9 @@ window.renderOrcamento = function(){
       const [cy2,cm2]=mes.split('-').map(Number);
       const diff=(cy2-py)*12+(cm2-pm2);
       if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+    } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+      const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+      if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
@@ -2281,7 +2730,7 @@ window.renderUsuarios = function(){
     return `<div class="user-card">
       <div class="user-card-header">
         <div class="user-card-info">
-          <div class="uc-avatar" style="background:${isAdm?'#854f0b':'#185fa5'}">${initials(u.nome||u.login)}</div>
+          <div class="uc-avatar" style="background:${isAdm?'#6d28d9':'#185fa5'}">${initials(u.nome||u.login)}</div>
           <div>
             <div class="uc-name">${u.nome||u.login} <span style="font-size:11px;color:var(--text3);font-weight:400">(${u.login})</span></div>
             <div class="uc-meta">${comprNomes}</div>
@@ -2517,54 +2966,42 @@ window.toggleTheme = function(){
 
 // ── RELATÓRIO PDF ──
 window.initRelatorio = function(){
-  const isAdm = SESSION && SESSION.role==='adm';
-  let pessoaLista = S.pessoas;
-  if(!isAdm && SESSION.compradores.length) pessoaLista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
-
-  // Orçamento tab selects
   const sel = document.getElementById('rel-pessoa');
-  if(sel){
-    const cur = sel.value;
-    sel.innerHTML = isAdm ? '<option value="">Todos</option>' : '';
-    pessoaLista.forEach(p=>{ sel.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
-    if(!isAdm && pessoaLista.length===1) sel.value = pessoaLista[0].id;
-    else sel.value = cur;
-  }
+  if(!sel) return;
+  const cur = sel.value;
+  const isAdm = SESSION && SESSION.role==='adm';
+  let lista = S.pessoas;
+  if(!isAdm && SESSION.compradores.length) lista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
+  sel.innerHTML = isAdm ? '<option value="">Todos os compradores</option>' : '';
+  lista.forEach(p=>{ sel.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
+  if(!isAdm && lista.length===1) sel.value = lista[0].id;
+  else sel.value = cur;
   const mesEl = document.getElementById('rel-mes');
-  if(mesEl && !mesEl.value) mesEl.value = getMesAtual();
-
-  // Cartoes tab selects
-  const selC = document.getElementById('relc-cartao');
-  if(selC){
-    const cur = selC.value;
-    selC.innerHTML = '<option value="">Todos os cartões</option>';
-    S.cartoes.forEach(c=>{ selC.innerHTML+=`<option value="${c.id}">${c.nome}</option>`; });
-    selC.value = cur;
+  if(!mesEl.value) mesEl.value = getMesAtual();
+  // Populate selects de compras por cartão
+  const relcMes = document.getElementById('relc-mes');
+  if(relcMes && !relcMes.value) relcMes.value = getMesAtual();
+  const relcCartao = document.getElementById('relc-cartao');
+  if(relcCartao){
+    const curC = relcCartao.value;
+    relcCartao.innerHTML = '<option value="">Todos os cartões</option>';
+    S.cartoes.forEach(c=>{ relcCartao.innerHTML+=`<option value="${c.id}">${c.nome}</option>`; });
+    relcCartao.value = curC;
   }
-  const selCP = document.getElementById('relc-pessoa');
-  if(selCP){
-    const cur = selCP.value;
-    selCP.innerHTML = isAdm ? '<option value="">Todos</option>' : '';
-    pessoaLista.forEach(p=>{ selCP.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
-    if(!isAdm && pessoaLista.length===1) selCP.value = pessoaLista[0].id;
-    else selCP.value = cur;
+  const relcPessoa = document.getElementById('relc-pessoa');
+  if(relcPessoa){
+    const curP = relcPessoa.value;
+    relcPessoa.innerHTML = isAdm ? '<option value="">Todos os compradores</option>' : '';
+    lista.forEach(p=>{ relcPessoa.innerHTML+=`<option value="${p.id}">${p.nome}</option>`; });
+    relcPessoa.value = curP;
   }
-  const mesC = document.getElementById('relc-mes');
-  if(mesC && !mesC.value) mesC.value = getMesAtual();
-}
-
-window.switchRelTab = function(tab){
-  ['orcamento','cartoes'].forEach(t=>{
-    document.getElementById('rel-panel-'+t).style.display = t===tab?'':'none';
-    const btn = document.getElementById('rel-tab-'+t);
-    btn.className = t===tab ? 'btn btn-accent' : 'btn';
-  });
 }
 
 function calcOrcPessoa(pessoaId, mes){
   const p = S.pessoas.find(x=>x.id===pessoaId);
   if(!p) return null;
   const renda = S.rendas[`${pessoaId}_${mes}`]||0;
+  const eco = S.rendas[`eco_${pessoaId}_${mes}`]||0;
   let fatura=0;
   const comprasList = [];
   S.compras.forEach(c=>{
@@ -2575,6 +3012,11 @@ function calcOrcPessoa(pessoaId, mes){
       const [cy,cm]=mes.split('-').map(Number);
       const diff=(cy-py)*12+(cm-pm);
       if(diff>=0&&diff<c.parcelas){vm=c.valor/c.parcelas;parcDesc=`Parcela ${diff+1}/${c.parcelas}`;}
+    } else if(c.categoria === 'ASSINATURAS' && !c.parcelado){
+      const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
+      if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)){
+        vm = c.valor; parcDesc = 'Recorrente';
+      }
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
@@ -2582,16 +3024,17 @@ function calcOrcPessoa(pessoaId, mes){
     if(vm>0){
       const cartao=S.cartoes.find(k=>k.id===c.cartaoId);
       fatura+=vm;
-      comprasList.push({desc:c.descricao, val:vm, cartao:cartao?.nome||'?', parcDesc});
+      comprasList.push({desc:c.descricao, val:vm, cartao:cartao?.nome||'?', parcDesc, categoria:c.categoria||''});
     }
   });
   const contas = S.contasFixas.filter(c=>c.pessoaId===pessoaId&&c.fixa!==false).map(c=>{
     const sk=`${c.id}_${mes}`;
-    const st=S.statusContas[sk]||{status:'ABERTO',valor:c.valor};
-    return {...c, status:st.status, valorReal:st.valor||c.valor};
+    const stData=S.statusContas[sk];
+    const curValor = stData?.valor !== undefined ? stData.valor : c.valor;
+    return {...c, status:stData?.status||'ABERTO', valorReal:curValor};
   });
   const totalFixas = contas.reduce((s,c)=>s+c.valorReal,0);
-  return {p, renda, fatura, contas, comprasList, totalFixas, saldo:renda-totalFixas-fatura};
+  return {p, renda, eco, fatura, contas, comprasList, totalFixas, saldo:renda-totalFixas-fatura-eco};
 }
 
 window.previewRelatorio = function(){
@@ -2621,8 +3064,9 @@ window.previewRelatorio = function(){
         });
       }
       html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px dashed var(--border);margin-top:.25rem"><span style="font-size:12px">Fatura cartões</span><span style="color:var(--danger);font-size:12px">${fmtMoney(d.fatura)}</span></div>`;
+      if(d.eco>0) html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px dashed var(--border);margin-top:.25rem"><span style="font-size:12px">Economia / Reserva</span><span style="color:var(--accent2);font-size:12px">-${fmtMoney(d.eco)}</span></div>`;
     }
-    
+
     if(incluir!=='resumo' && d.comprasList.length){
       html += `<div style="font-size:11px;color:var(--text3);margin:.5rem 0 .25rem;font-weight:600">COMPRAS DETALHADAS</div>`;
       d.comprasList.forEach(c=>{
@@ -2631,7 +3075,7 @@ window.previewRelatorio = function(){
           <span style="font-family:monospace">${fmtMoney(c.val)}</span></div>`;
       });
     }
-    
+
     if(incluir!=='compras'){
       const cor = d.saldo>=0?'var(--accent)':'var(--danger)';
       html += `<div style="display:flex;justify-content:space-between;padding:8px;background:var(--surface);border-radius:var(--radius);margin-top:.75rem;font-weight:700">
@@ -2667,7 +3111,9 @@ window.gerarPDF = function(){
           body += `<tr><td>${c.descricao} <span class="tag ${cls}">${c.status}</span></td><td class="val">${fmtMoney(c.valorReal)}</td></tr>`;
         });
       }
-      body += `<tr><td>Fatura cartões</td><td class="val red">${fmtMoney(d.fatura)}</td></tr></table>`;
+      body += `<tr><td>Fatura cartões</td><td class="val red">${fmtMoney(d.fatura)}</td></tr>`;
+      if(d.eco>0) body += `<tr><td>Economia / Reserva</td><td class="val blue">-${fmtMoney(d.eco)}</td></tr>`;
+      body += `</table>`;
     }
     if(incluir!=='resumo' && d.comprasList.length){
       body += `<div class="section-label" style="margin:.75rem 0 .4rem">COMPRAS DETALHADAS</div><table>`;
@@ -2695,7 +3141,7 @@ window.gerarPDF = function(){
     td{padding:4px 6px;border-bottom:1px dashed #d0d5e8;font-size:11px}
     td:last-child{text-align:right;width:120px}
     .val{font-family:monospace;font-weight:600}
-    .green{color:#166534}.red{color:#991b1b}.warn{color:#92400e}
+    .green{color:#166534}.red{color:#991b1b}.warn{color:#92400e}.blue{color:#1d4ed8}
     .section-label{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;padding-top:.5rem}
     .saldo-row{display:flex;justify-content:space-between;padding:8px;background:#f0fdf4;border-radius:6px;margin-top:.5rem;font-weight:700;font-size:13px}
     .tag{font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600;border:1px solid currentColor;margin-left:4px}
@@ -2728,6 +3174,205 @@ window.toggleNcoCatOutro = function(sel){
   if(wrap) wrap.style.display = sel.value==='OUTRO' ? 'flex' : 'none';
 }
 
+// ── Parcela info ──
+window.updateParcelaInfo = function(){
+  const cb = document.getElementById('c-parc-cb');
+  const info = document.getElementById('c-parcela-info');
+  if(!cb || !info) return;
+  if(!cb.checked){ info.style.display='none'; return; }
+  const valor = parseMoney(document.getElementById('c-valor').value);
+  const nparc = parseInt(document.getElementById('c-nparc').value)||0;
+  if(valor>0 && nparc>=2){
+    info.textContent = `Cada parcela: ${fmtMoney(valor/nparc)}`;
+    info.style.display='block';
+  } else {
+    info.style.display='none';
+  }
+}
+
+// ── Cancelar Assinatura ──
+window.cancelarAssinatura = async function(id){
+  const mes = prompt('Cancelar a partir de qual mês? (AAAA-MM)\nDeixe em branco para cancelar no mês atual:') || '';
+  const cancelMes = mes.trim() || getMesAtual();
+  if(!/^\d{4}-\d{2}$/.test(cancelMes)){ alert('Formato inválido. Use AAAA-MM.'); return; }
+  const idx = S.compras.findIndex(c=>c.id===id);
+  if(idx<0) return;
+  S.compras[idx] = {...S.compras[idx], canceladoEm: cancelMes};
+  await fbSet('compras', id, S.compras[idx]);
+  render();
+}
+
+// ── Economia / Reserva ──
+window.openEconomia = function(pessoaId, mes, nome, valor){
+  document.getElementById('meco-pessoaid').value = pessoaId;
+  document.getElementById('meco-mes').value = mes;
+  document.getElementById('meco-nome').textContent = `Economia de ${nome} — ${fmtMes(mes)}`;
+  document.getElementById('meco-valor').value = valor>0?Number(valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'';
+  openModal('modal-economia');
+}
+
+window.saveEconomia = async function(){
+  const pessoaId = document.getElementById('meco-pessoaid').value;
+  const mes = document.getElementById('meco-mes').value;
+  const valor = parseMoney(document.getElementById('meco-valor').value);
+  S.rendas[`eco_${pessoaId}_${mes}`] = valor;
+  await saveMeta();
+  closeModal('modal-economia');
+  renderOrcamento();
+}
+
+// ── Relatório PDF por Cartão ──
+function getComprasParaFatura(mes, cartaoId, pessoaId){
+  const isAdm = SESSION && SESSION.role==='adm';
+  const allowed = isAdm ? null : (SESSION.compradores.length ? SESSION.compradores : null);
+  return S.compras.filter(c=>{
+    if(cartaoId && c.cartaoId !== cartaoId) return false;
+    if(pessoaId && c.pessoaId !== pessoaId) return false;
+    if(allowed && !allowed.includes(c.pessoaId)) return false;
+    let vm = 0;
+    if(c.parcelado && c.data1){
+      const [py,pm]=c.data1.split('-').map(Number);
+      const [cy,cm]=mes.split('-').map(Number);
+      const diff=(cy-py)*12+(cm-pm);
+      if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+    } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+      const startMes=c.dataCompra?c.dataCompra.slice(0,7):(c.data1||'');
+      if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
+    } else {
+      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      if(compMes===mes) vm=c.valor;
+    }
+    return vm>0;
+  }).map(c=>{
+    let vm=0, parcDesc='À vista';
+    if(c.parcelado&&c.data1){
+      const [py,pm]=c.data1.split('-').map(Number);
+      const [cy,cm]=mes.split('-').map(Number);
+      const diff=(cy-py)*12+(cm-pm);
+      if(diff>=0&&diff<c.parcelas){vm=c.valor/c.parcelas;parcDesc=`Parc. ${diff+1}/${c.parcelas}`;}
+    } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
+      vm=c.valor; parcDesc='Recorrente';
+    } else {
+      vm=c.valor;
+    }
+    const pessoa=S.pessoas.find(p=>p.id===c.pessoaId);
+    return {...c, vm, parcDesc, pessoaNome:pessoa?.nome||'?', pessoaCor:pessoa?.cor||'#888'};
+  });
+}
+
+window.previewRelCartoes = function(){
+  const mes = document.getElementById('relc-mes').value || getMesAtual();
+  const cartaoFiltro = document.getElementById('relc-cartao').value;
+  const pessoaFiltro = document.getElementById('relc-pessoa').value;
+  const cartoes = cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : S.cartoes;
+
+  let html = `<div style="font-size:13px;line-height:1.7">`;
+  html += `<div style="font-weight:700;font-size:15px;margin-bottom:1rem;border-bottom:2px solid var(--accent);padding-bottom:.5rem">Compras por Cartão — ${fmtMes(mes)}</div>`;
+
+  cartoes.forEach(cartao=>{
+    const compras = getComprasParaFatura(mes, cartao.id, pessoaFiltro||null);
+    if(!compras.length) return;
+    const totalCartao = compras.reduce((s,c)=>s+c.vm,0);
+    html += `<div style="margin-bottom:1.5rem;padding:1rem;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">`;
+    html += `<div style="font-weight:700;font-size:14px;margin-bottom:.75rem;display:flex;align-items:center;gap:8px">
+      <div style="width:14px;height:14px;border-radius:50%;background:${cartao.cor||'#888'}"></div>
+      ${cartao.nome} — Total: ${fmtMoney(totalCartao)}</div>`;
+    // Agrupar por pessoa
+    const porPessoa = {};
+    compras.forEach(c=>{
+      if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
+      porPessoa[c.pessoaId].items.push(c);
+      porPessoa[c.pessoaId].total += c.vm;
+    });
+    Object.values(porPessoa).forEach(pg=>{
+      html += `<div style="margin:.5rem 0 .25rem;display:flex;align-items:center;gap:6px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${pg.cor}"></div>
+        <span style="font-size:12px;font-weight:600;color:var(--text)">${pg.nome}</span>
+        <span style="font-size:11px;color:var(--text3)">— ${fmtMoney(pg.total)}</span></div>`;
+      pg.items.forEach(it=>{
+        const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
+        html += `<div style="display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:11px;border-bottom:1px dashed var(--border)">
+          <span>${it.descricao} <span style="color:var(--text3)">(${dataDp} · ${it.parcDesc} · ${it.categoria||''})</span></span>
+          <span style="font-family:monospace">${fmtMoney(it.vm)}</span></div>`;
+      });
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+
+  const wrap = document.getElementById('relc-preview');
+  document.getElementById('relc-preview-content').innerHTML = html;
+  wrap.style.display='block';
+}
+
+window.gerarPDFCartoes = function(){
+  const mes = document.getElementById('relc-mes').value || getMesAtual();
+  const cartaoFiltro = document.getElementById('relc-cartao').value;
+  const pessoaFiltro = document.getElementById('relc-pessoa').value;
+  const cartoes = cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : S.cartoes;
+
+  let body = '';
+  cartoes.forEach(cartao=>{
+    const compras = getComprasParaFatura(mes, cartao.id, pessoaFiltro||null);
+    if(!compras.length) return;
+    const totalCartao = compras.reduce((s,c)=>s+c.vm,0);
+    body += `<div class="cartao-section">
+      <h2><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${cartao.cor||'#888'};vertical-align:middle;margin-right:6px"></span>${cartao.nome} — Total: ${fmtMoney(totalCartao)}</h2>`;
+    const porPessoa = {};
+    compras.forEach(c=>{
+      if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
+      porPessoa[c.pessoaId].items.push(c);
+      porPessoa[c.pessoaId].total += c.vm;
+    });
+    Object.values(porPessoa).forEach(pg=>{
+      body += `<div class="pessoa-label">${pg.nome} — ${fmtMoney(pg.total)}</div>`;
+      body += `<table>`;
+      pg.items.forEach(it=>{
+        const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
+        body += `<tr><td>${it.descricao}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
+      });
+      body += `<tr class="subtotal"><td>Subtotal ${pg.nome}</td><td class="val green">${fmtMoney(pg.total)}</td></tr>`;
+      body += `</table>`;
+    });
+    body += `<div class="total-row"><span>Total ${cartao.nome}</span><span class="green">${fmtMoney(totalCartao)}</span></div>`;
+    body += `</div>`;
+  });
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
+  <title>Relatório por Cartão ${fmtMes(mes)}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:12px;color:#1a1f2e;padding:2rem}
+    h1{font-size:18px;font-weight:700;margin-bottom:.5rem;border-bottom:3px solid #4ade80;padding-bottom:.5rem}
+    h2{font-size:13px;font-weight:700;margin:.75rem 0 .5rem;color:#1a3a27}
+    .cartao-section{margin-bottom:2rem;padding:1rem;border:1px solid #d0d5e8;border-radius:8px;page-break-inside:avoid}
+    .pessoa-label{font-size:11px;font-weight:700;color:#4b5563;margin:.5rem 0 .25rem;padding-left:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:.5rem}
+    td{padding:4px 6px;border-bottom:1px dashed #d0d5e8;font-size:11px}
+    td:last-child{text-align:right;width:110px}
+    .val{font-family:monospace;font-weight:600}
+    .green{color:#166534}.subtotal{background:#f0fdf4}
+    .subtotal td{font-weight:600}
+    .total-row{display:flex;justify-content:space-between;padding:8px;background:#f0fdf4;border-radius:6px;margin-top:.5rem;font-weight:700;font-size:13px}
+    small{color:#6b7280;font-size:9px}
+    .header{margin-bottom:1.5rem}
+    .meta{font-size:11px;color:#6b7280;margin-top:.25rem}
+    @media print{body{padding:1rem}}
+  </style></head><body>
+  <div class="header">
+    <h1>Compras por Cartão — ${fmtMes(mes)}</h1>
+    <div class="meta">Gerado em: ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+  </div>
+  ${body||'<p>Nenhuma compra encontrada para os filtros selecionados.</p>'}
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Pop-up bloqueado. Libere pop-ups para este site.'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
 // ── INIT ──
 async function init(){
   document.getElementById('loading-screen').style.display='flex';
@@ -2740,24 +3385,23 @@ async function init(){
     if(icon) icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
   }
   await loadAll();
-  document.getElementById('loading-screen').style.display='none';
   document.getElementById('mes-ref').value = getMesAtual();
   document.getElementById('orc-mes').value = getMesAtual();
-  // Restore session if exists
-  const saved = loadSession();
-  if(saved){
-    // Re-sync from current users list (in case password/role changed)
-    const u = S.usuarios.find(x=>x.id===saved.userId);
-    if(u){
-      SESSION = {userId:u.id, login:u.login, role:u.role, compradores:u.compradores||[], nome:u.nome||u.login};
-      setupUI();
-    } else {
-      clearSession();
-      document.getElementById('login-screen').style.display='flex';
-    }
-  } else {
-    document.getElementById('login-screen').style.display='flex';
+  // Restaurar sessão do sessionStorage
+  const savedSession = sessionStorage.getItem('session');
+  if(savedSession){
+    try {
+      const s = JSON.parse(savedSession);
+      if(s && s.userId) {
+        SESSION = s;
+        document.getElementById('loading-screen').style.display='none';
+        setupUI();
+        return;
+      }
+    } catch(e) { sessionStorage.removeItem('session'); }
   }
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
   // Enter no login
   document.getElementById('li-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 }
