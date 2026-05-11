@@ -1701,7 +1701,7 @@ window.renderFaturas = function(){
         const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
         if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
       } else {
-        const compMes=getMesFaturaCompra(c);
+        const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
         if(compMes===mes) vm=c.valor;
       }
       total+=vm;
@@ -1735,7 +1735,7 @@ window.renderFaturas = function(){
           parcDesc = 'Recorrente';
         }
       } else {
-        const compMes = getMesFaturaCompra(c);
+        const compMes = c.dataCompra ? c.dataCompra.slice(0,7) : c.data1;
         if(compMes === mes) vm = c.valor;
       }
       if(vm<=0) return;
@@ -1814,43 +1814,35 @@ window.toggleParcelEdit = function(cb){ document.getElementById('ec-parc-fields'
 function calcFaturaDoCartao(cartaoId, dataCompraStr){
   const cartao = S.cartoes.find(c=>c.id===cartaoId);
   if(!dataCompraStr) return getMesAtual();
-  // yyyy, mm, dd com mm=1..12 (valores reais, não índice JS)
   const parts = dataCompraStr.split('-').map(Number);
   const yyyy = parts[0], mm = parts[1], dd = parts[2];
   // addMeses: soma N meses a um mes 1-based e retorna "YYYY-MM"
   function addMeses(y, m, n){
-    const d = new Date(y, (m - 1) + n, 1); // mês 0-based internamente
+    const d = new Date(y, (m - 1) + n, 1);
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   }
   if(!cartao || !cartao.diaFecha){
-    // Sem fechamento definido: vai para fatura do mês seguinte
+    // Sem fechamento: fatura = mês seguinte ao da compra
     return addMeses(yyyy, mm, 1);
   }
   const diaFecha = Number(cartao.diaFecha);
-  // Lógica: o cartão fecha no diaFecha de cada mês.
-  // Se a compra foi feita ANTES ou NO dia de fechamento (dd <= diaFecha):
-  //   → ainda está dentro do ciclo atual → fatura deste mesmo mês
-  // Se a compra foi feita APÓS o fechamento (dd > diaFecha):
-  //   → o ciclo atual já fechou → vai para a fatura do mês seguinte
+  // Lógica correta:
+  // A fatura é identificada pelo mês do VENCIMENTO (sempre mês seguinte ao fechamento).
+  // Ciclo atual:   fecha dia diaFecha/mm  → vence em mm+1  → fatura mm+1
+  // Próximo ciclo: fecha dia diaFecha/mm+1 → vence em mm+2 → fatura mm+2
+  //
+  // Compra no dia dd do mês mm:
+  //   dd <= diaFecha → compra dentro do ciclo que fecha este mês → fatura = mm+1
+  //   dd >  diaFecha → ciclo atual já fechou → próximo ciclo → fatura = mm+2
+  //
+  // Exemplo: fecha dia 27, vence dia 5
+  //   Compra 10/03 (10 <= 27): ciclo fecha 27/03, vence 05/04 → fatura 04/2026 ✓
+  //   Compra 31/03 (31 >  27): ciclo atual fechou, próximo fecha 27/04, vence 05/05 → fatura 05/2026 ✓
   if(dd <= diaFecha){
-    return addMeses(yyyy, mm, 0); // mesmo mês
+    return addMeses(yyyy, mm, 1); // vence no mês seguinte
   } else {
-    return addMeses(yyyy, mm, 1); // mês seguinte
+    return addMeses(yyyy, mm, 2); // vence em dois meses
   }
-}
-
-// ── Recalcula mês da fatura de uma compra à vista considerando diaFecha ──
-function getMesFaturaCompra(c){
-  // Para compras à vista com data completa e cartão com fechamento definido,
-  // recalcula o mês correto a partir de dataCompraFull
-  if(c.dataCompraFull && !c.parcelado){
-    const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
-    if(cartao && cartao.diaFecha){
-      return calcFaturaDoCartao(c.cartaoId, c.dataCompraFull);
-    }
-  }
-  // Fallback: usa o mês armazenado
-  return c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
 }
 
 window.calcFaturaAuto = function(){
@@ -2411,7 +2403,7 @@ window.renderOrcamento = function(){
       const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
       if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)) vm = c.valor;
     } else {
-      const compMes=getMesFaturaCompra(c);
+      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined){
@@ -2599,7 +2591,7 @@ window.renderOrcamento = function(){
           const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
           if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
-          const compMes=getMesFaturaCompra(c);
+          const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
           if(compMes===m) vm=c.valor;
         }
         fat+=vm;
@@ -2633,7 +2625,7 @@ window.renderOrcamento = function(){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
-      const compMes=getMesFaturaCompra(c);
+      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0){
@@ -2918,7 +2910,7 @@ window.openComprasCartao = function(pessoaId, mes){
       const diff=(cy-py)*12+(cm-pm);
       return diff>=0&&diff<c.parcelas;
     }
-    const compMes=getMesFaturaCompra(c);
+    const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
     return compMes===mes;
   });
   const el = document.getElementById('orc-compras-cartao-list');
@@ -3070,7 +3062,7 @@ function calcOrcPessoa(pessoaId, mes){
         vm = c.valor; parcDesc = 'Recorrente';
       }
     } else {
-      const compMes=getMesFaturaCompra(c);
+      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0){
@@ -3291,7 +3283,7 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
-      const compMes=getMesFaturaCompra(c);
+      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=c.valor;
     }
     return vm>0;
