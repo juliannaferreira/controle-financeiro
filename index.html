@@ -1701,7 +1701,7 @@ window.renderFaturas = function(){
         const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
         if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
       } else {
-        const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+        const compMes=getMesFaturaCompra(c);
         if(compMes===mes) vm=c.valor;
       }
       total+=vm;
@@ -1735,7 +1735,7 @@ window.renderFaturas = function(){
           parcDesc = 'Recorrente';
         }
       } else {
-        const compMes = c.dataCompra ? c.dataCompra.slice(0,7) : c.data1;
+        const compMes = getMesFaturaCompra(c);
         if(compMes === mes) vm = c.valor;
       }
       if(vm<=0) return;
@@ -1837,6 +1837,20 @@ function calcFaturaDoCartao(cartaoId, dataCompraStr){
   } else {
     return addMeses(yyyy, mm, 1); // mês seguinte
   }
+}
+
+// ── Recalcula mês da fatura de uma compra à vista considerando diaFecha ──
+function getMesFaturaCompra(c){
+  // Para compras à vista com data completa e cartão com fechamento definido,
+  // recalcula o mês correto a partir de dataCompraFull
+  if(c.dataCompraFull && !c.parcelado){
+    const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
+    if(cartao && cartao.diaFecha){
+      return calcFaturaDoCartao(c.cartaoId, c.dataCompraFull);
+    }
+  }
+  // Fallback: usa o mês armazenado
+  return c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
 }
 
 window.calcFaturaAuto = function(){
@@ -2397,7 +2411,7 @@ window.renderOrcamento = function(){
       const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
       if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)) vm = c.valor;
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined){
@@ -2585,7 +2599,7 @@ window.renderOrcamento = function(){
           const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
           if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
-          const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+          const compMes=getMesFaturaCompra(c);
           if(compMes===m) vm=c.valor;
         }
         fat+=vm;
@@ -2619,7 +2633,7 @@ window.renderOrcamento = function(){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0){
@@ -2904,7 +2918,7 @@ window.openComprasCartao = function(pessoaId, mes){
       const diff=(cy-py)*12+(cm-pm);
       return diff>=0&&diff<c.parcelas;
     }
-    const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+    const compMes=getMesFaturaCompra(c);
     return compMes===mes;
   });
   const el = document.getElementById('orc-compras-cartao-list');
@@ -3056,7 +3070,7 @@ function calcOrcPessoa(pessoaId, mes){
         vm = c.valor; parcDesc = 'Recorrente';
       }
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=c.valor;
     }
     if(vm>0){
@@ -3277,7 +3291,7 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=c.valor;
     }
     return vm>0;
