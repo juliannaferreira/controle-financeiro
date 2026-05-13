@@ -1816,32 +1816,41 @@ function calcFaturaDoCartao(cartaoId, dataCompraStr){
   if(!dataCompraStr) return getMesAtual();
   const parts = dataCompraStr.split('-').map(Number);
   const yyyy = parts[0], mm = parts[1], dd = parts[2];
-  // addMeses: soma N meses a um mes 1-based e retorna "YYYY-MM"
   function addMeses(y, m, n){
     const d = new Date(y, (m - 1) + n, 1);
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
   }
   if(!cartao || !cartao.diaFecha){
-    // Sem fechamento: fatura = mês seguinte ao da compra
     return addMeses(yyyy, mm, 1);
   }
   const diaFecha = Number(cartao.diaFecha);
-  // Lógica correta:
-  // A fatura é identificada pelo mês do VENCIMENTO (sempre mês seguinte ao fechamento).
-  // Ciclo atual:   fecha dia diaFecha/mm  → vence em mm+1  → fatura mm+1
-  // Próximo ciclo: fecha dia diaFecha/mm+1 → vence em mm+2 → fatura mm+2
+  const diaVenc  = Number(cartao.diaVenc || (diaFecha + 8));
+  // Lógica correta usando diaFecha E diaVenc:
   //
-  // Compra no dia dd do mês mm:
-  //   dd <= diaFecha → compra dentro do ciclo que fecha este mês → fatura = mm+1
-  //   dd >  diaFecha → ciclo atual já fechou → próximo ciclo → fatura = mm+2
+  // Caso A — diaVenc > diaFecha (vence no mesmo mês que fecha):
+  //   Ex: fecha 01, vence 09 → ciclo de fatura JUNHO: compras de 02/mai a 01/jun
+  //   dd <= diaFecha → ciclo que fecha este mês → fatura = este mês
+  //   dd >  diaFecha → próximo ciclo            → fatura = mês seguinte
   //
-  // Exemplo: fecha dia 27, vence dia 5
-  //   Compra 10/03 (10 <= 27): ciclo fecha 27/03, vence 05/04 → fatura 04/2026 ✓
-  //   Compra 31/03 (31 >  27): ciclo atual fechou, próximo fecha 27/04, vence 05/05 → fatura 05/2026 ✓
-  if(dd <= diaFecha){
-    return addMeses(yyyy, mm, 1); // vence no mês seguinte
+  // Caso B — diaVenc < diaFecha (vence no mês seguinte ao fechamento):
+  //   Ex: fecha 27, vence 05 → ciclo de fatura JUNHO: compras de 28/abr a 27/mai, vence 05/jun
+  //   dd <= diaFecha → ciclo que fecha este mês → fatura = mês seguinte
+  //   dd >  diaFecha → próximo ciclo            → fatura = dois meses
+  //
+  // Testes: Nubank Julianna (fecha 01, vence 09):
+  //   09/mai (9>1) → mês seguinte = jun ✓
+  //   01/mai (1<=1) → este mês = mai ✓
+  // Testes: Picpay Viviane (fecha 27, vence 05):
+  //   10/mar (10<=27) → mês seguinte = abr ✓
+  //   31/mar (31>27) → dois meses = mai ✓
+  if(diaVenc > diaFecha){
+    // Vence no mesmo mês que fecha
+    if(dd <= diaFecha) return addMeses(yyyy, mm, 0); // fatura este mês
+    else               return addMeses(yyyy, mm, 1); // fatura mês seguinte
   } else {
-    return addMeses(yyyy, mm, 2); // vence em dois meses
+    // Vence no mês seguinte ao fechamento
+    if(dd <= diaFecha) return addMeses(yyyy, mm, 1); // fatura mês seguinte
+    else               return addMeses(yyyy, mm, 2); // fatura dois meses
   }
 }
 
@@ -2489,7 +2498,7 @@ window.renderOrcamento = function(){
 
       <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
-          <span>${ordOrc==='venc'?'Contas (por vencimento)':'Despesas'}</span>
+          <span>Despesas</span>
           <select style="font-size:11px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:'DM Sans',sans-serif" onchange="setOrcOrdem('${p.id}',this.value)">
             <option value="cat" ${ordOrc==='cat'?'selected':''}>Por categoria</option>
             <option value="az" ${ordOrc==='az'?'selected':''}>A-Z</option>
@@ -2499,9 +2508,8 @@ window.renderOrcamento = function(){
         </div>
         <button class="btn btn-sm btn-accent" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openNovaContaOrc('${p.id}')">+ Adicionar</button>
       </div>
-      ${ordOrc!=='venc' ? (minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>') : ''}
+      ${minhas.length ? statusRows : '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma despesa cadastrada</div>'}
 
-      ${ordOrc!=='venc' ? `
       <div class="orc-section" style="display:flex;justify-content:space-between;align-items:center">
         <span>Economia / Reserva</span>
         <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;margin-bottom:0" onclick="openEconomia('${p.id}','${mes}','${p.nome}',${eco})">Editar</button>
@@ -2509,39 +2517,25 @@ window.renderOrcamento = function(){
       <div class="orc-row">
         <div class="orc-row-name">Reserva do mês</div>
         <div class="orc-row-val" style="color:var(--accent2)">${eco>0?fmtMoney(eco):'<span style="color:var(--text3);font-size:12px">Não definida</span>'}</div>
-      </div>` : ''}
+      </div>
 
-      ${ordOrc!=='venc' ? '<div class="orc-section">Cartões</div>' : ''}
+      <div class="orc-section">Cartões</div>
       ${(()=>{
         const porCartao = faturasPorCartao[p.id]||{};
         const entradas = Object.entries(porCartao).filter(([,v])=>v>0);
         if(!entradas.length) return '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma compra neste mês</div>';
-        // Sort cartoes by diaVenc when ordering by vencimento
-        let entradasOrd = [...entradas];
-        if(ordOrc==='venc') entradasOrd.sort(([aid],[bid])=>{
-          const ca=S.cartoes.find(k=>k.id===aid); const cb=S.cartoes.find(k=>k.id===bid);
-          return (ca?.diaVenc||999)-(cb?.diaVenc||999);
-        });
-        const rows = entradasOrd.map(([cartaoId, val])=>{
+        const rows = entradas.map(([cartaoId, val])=>{
           const cartao = S.cartoes.find(k=>k.id===cartaoId);
           const stKey = 'cart_'+cartaoId+'_'+p.id+'_'+mes;
           const stCart = S.statusContas[stKey]||{status:'ABERTO', valor:val};
           const cur = stCart.status||'ABERTO';
-          const hoje = new Date().getDate();
-          const diasVencCart = cartao?.diaVenc ? cartao.diaVenc - hoje : null;
-          let vencBadgeCart = '';
-          if(cur!=='PAGO' && diasVencCart!==null){
-            if(diasVencCart<0) vencBadgeCart='<span class="venc-badge venc-hoje">Vencida</span>';
-            else if(diasVencCart<=3) vencBadgeCart=`<span class="venc-badge venc-breve">Vence em ${diasVencCart}d</span>`;
-            else vencBadgeCart=`<span class="venc-badge venc-ok">Dia ${cartao.diaVenc}</span>`;
-          }
           return `<div class="contas-item">
             <div class="contas-item-left">
               <div class="contas-item-nome" style="display:flex;align-items:center;gap:7px">
                 <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
                 ${cartao?.nome||'?'}
               </div>
-              <div class="contas-item-sub">Fatura do mês ${vencBadgeCart}</div>
+              <div class="contas-item-sub">Fatura do mês</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span class="contas-item-val">${fmtMoney(val)}</span>
@@ -2560,106 +2554,7 @@ window.renderOrcamento = function(){
                <div class="orc-row-val expense">${fmtMoney(fatura)}</div>
              </div>`
           : '';
-        if(ordOrc!=='venc') return rows + totalRow;
-
-        // ── Modo "Por vencimento": lista unificada de TODAS as contas ──
-        // Monta array com despesas + cartoes + economia e ordena por dia vencimento
-        const todosItens = [];
-
-        // Despesas fixas
-        minhasOrd.forEach(c=>{
-          const sKey = `${c.id}_${mes}`;
-          const stData = S.statusContas[sKey];
-          const curStatus = stData?.status||'ABERTO';
-          const curValor = stData?.valor!==undefined ? stData.valor : c.valor;
-          const hoje2 = new Date().getDate();
-          const dv = c.dia ? c.dia - hoje2 : null;
-          let vb = '';
-          if(curStatus!=='PAGO'&&dv!==null){
-            if(dv<0) vb='<span class="venc-badge venc-hoje">Vencida</span>';
-            else if(dv<=3) vb=`<span class="venc-badge venc-breve">Vence em ${dv}d</span>`;
-            else vb=`<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
-          }
-          todosItens.push({
-            diaVenc: c.dia||999,
-            html: `<div class="contas-item">
-              <div class="contas-item-left">
-                <div class="contas-item-nome">${c.descricao}</div>
-                <div class="contas-item-sub">Venc. dia ${c.dia||'?'} · ${c.categoria||''} ${vb}</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span class="contas-item-val">${fmtMoney(curValor)}</span>
-                <div class="status-toggle">
-                  <button class="st-btn ${curStatus==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('${c.id}','${mes}','ABERTO',${curValor})">Em Aberto</button>
-                  <button class="st-btn ${curStatus==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('${c.id}','${mes}','PENDENTE',${curValor})">Pendente</button>
-                  <button class="st-btn ${curStatus==='PAGO'?'active-pago':''}" onclick="setStatusInline('${c.id}','${mes}','PAGO',${curValor})">Pago</button>
-                </div>
-                <button class="btn btn-sm btn-edit" onclick="openEditContaFixa('${c.id}')">Editar</button>
-                <button class="btn btn-sm btn-del" onclick="removeContaFixaOrc('${c.id}')">Remover</button>
-              </div>
-            </div>`
-          });
-        });
-
-        // Cartões
-        entradasOrd.forEach(([cartaoId, val])=>{
-          const cartao = S.cartoes.find(k=>k.id===cartaoId);
-          const stKey = 'cart_'+cartaoId+'_'+p.id+'_'+mes;
-          const stCart = S.statusContas[stKey]||{status:'ABERTO',valor:val};
-          const cur = stCart.status||'ABERTO';
-          const hoje2 = new Date().getDate();
-          const dv = cartao?.diaVenc ? cartao.diaVenc - hoje2 : null;
-          let vb = '';
-          if(cur!=='PAGO'&&dv!==null){
-            if(dv<0) vb='<span class="venc-badge venc-hoje">Vencida</span>';
-            else if(dv<=3) vb=`<span class="venc-badge venc-breve">Vence em ${dv}d</span>`;
-            else vb=`<span class="venc-badge venc-ok">Dia ${cartao.diaVenc}</span>`;
-          }
-          todosItens.push({
-            diaVenc: cartao?.diaVenc||999,
-            html: `<div class="contas-item">
-              <div class="contas-item-left">
-                <div class="contas-item-nome" style="display:flex;align-items:center;gap:7px">
-                  <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
-                  ${cartao?.nome||'?'}
-                </div>
-                <div class="contas-item-sub">Fatura do mês ${vb}</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span class="contas-item-val">${fmtMoney(val)}</span>
-                <div class="status-toggle">
-                  <button class="st-btn ${cur==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','ABERTO',${val})">Em Aberto</button>
-                  <button class="st-btn ${cur==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PENDENTE',${val})">Pendente</button>
-                  <button class="st-btn ${cur==='PAGO'?'active-pago':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PAGO',${val})">Pago</button>
-                </div>
-                <button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openComprasCartao('${p.id}','${mes}')">Ver</button>
-              </div>
-            </div>`
-          });
-        });
-
-        // Economia (sem vencimento fixo, vai para o final — dia 998)
-        if(eco>0) todosItens.push({
-          diaVenc: 998,
-          html: `<div class="contas-item">
-            <div class="contas-item-left">
-              <div class="contas-item-nome">Economia / Reserva</div>
-              <div class="contas-item-sub">Reserva do mês</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="contas-item-val" style="color:var(--accent2)">${fmtMoney(eco)}</span>
-              <button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openEconomia('${p.id}','${mes}','${p.nome}',${eco})">Editar</button>
-            </div>
-          </div>`
-        });
-
-        // Ordenar por dia de vencimento
-        todosItens.sort((a,b)=>a.diaVenc-b.diaVenc);
-        return todosItens.map(i=>i.html).join('') +
-          (entradas.length>1 ? `<div class="orc-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px">
-            <div class="orc-row-name" style="font-size:12px;font-weight:600">Total cartões</div>
-            <div class="orc-row-val expense">${fmtMoney(fatura)}</div>
-          </div>` : '');
+        return rows + totalRow;
       })()}
 
       <div class="orc-section">Resumo</div>
