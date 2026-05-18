@@ -100,6 +100,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── Duplicate btn ── */
 .btn-dup{border-color:#2a1a4a;color:var(--purple)}
 .btn-dup:hover{background:var(--purple-dim)}
+.btn-estorno{border-color:#0e4a3a;color:#34d399}
+.btn-estorno:hover{background:#0a2e24}
+.estorno-badge{font-size:10px;background:#0a2e24;color:#34d399;border:1px solid #0e4a3a;border-radius:10px;padding:1px 7px;font-weight:600;margin-left:5px}
+.estorno-total{font-size:11px;color:#34d399;margin-left:4px;font-family:'DM Mono',monospace}
 
 /* ── PWA Install Banner ── */
 #pwa-banner{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:300;background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:.85rem 1.25rem;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-width:380px;width:calc(100% - 2rem)}
@@ -958,6 +962,46 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
   </div>
 </div>
 
+<!-- Modal Registrar Estorno -->
+<div class="modal-overlay" id="modal-estorno">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+      Registrar Estorno
+    </div>
+    <div class="alert" id="al-estorno"></div>
+    <input type="hidden" id="est-compra-id"/>
+    <p id="est-compra-nome" style="font-weight:600;font-size:14px;margin-bottom:.25rem"></p>
+    <p id="est-compra-info" style="font-size:12px;color:var(--text2);margin-bottom:1rem"></p>
+    <div class="form-grid">
+      <div class="f">
+        <label>Valor estornado (R$)</label>
+        <input id="est-valor" placeholder="0,00" oninput="maskMoney(this);calcEstornoInfo()"/>
+      </div>
+      <div class="f">
+        <label>Data do estorno</label>
+        <input id="est-data" type="date"/>
+      </div>
+    </div>
+    <div class="f" style="margin-top:4px">
+      <label>Motivo (opcional)</label>
+      <input id="est-motivo" class="upper" placeholder="Ex: PRODUTO DEVOLVIDO"/>
+    </div>
+    <div id="est-info-calc" style="font-size:12px;color:var(--accent);margin-top:.5rem;display:none"></div>
+    <div id="est-historico" style="margin-top:.75rem;display:none">
+      <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:.4rem">Estornos anteriores</div>
+      <div id="est-historico-list"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-estorno')">Cancelar</button>
+      <button class="btn btn-accent" onclick="salvarEstorno()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+        Registrar Estorno
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Editar Cartão -->
 <div class="modal-overlay" id="modal-cartao">
   <div class="modal">
@@ -1696,13 +1740,13 @@ window.renderFaturas = function(){
         const [py,pm]=c.data1.split('-').map(Number);
         const [cy,cm]=mes.split('-').map(Number);
         const diff=(cy-py)*12+(cm-pm);
-        if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+        if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
       } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
         const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
         if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
       } else {
         const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-        if(compMes===mes) vm=c.valor;
+        if(compMes===mes) vm=getValorLiquido(c);
       }
       total+=vm;
     });
@@ -1745,7 +1789,8 @@ window.renderFaturas = function(){
       const cor = p?p.cor:'#888';
       if(!porPessoa[nome]) porPessoa[nome]={val:0, cor};
       porPessoa[nome].val += vm;
-      itens.push({nome:c.descricao, val:vm, meta: parcDesc||'À vista', pessoa:nome, cor});
+      const estVal=(c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+      itens.push({nome:c.descricao, val:vm, meta: parcDesc||'À vista', pessoa:nome, cor, temEstorno:estVal>0, estornoTotal:estVal});
     });
     totalGeral += total;
     if(total===0 && !isAdm) return '';
@@ -1781,7 +1826,7 @@ window.renderFaturas = function(){
           ${itens.map(it=>`
             <div class="fatura-item">
               <div class="fi-left">
-                <div class="fi-name">${it.nome}</div>
+                <div class="fi-name">${it.nome}${it.temEstorno?`<span style="font-size:10px;color:#34d399;margin-left:5px">↩-${fmtMoney(it.estornoTotal)}</span>`:''}</div>
                 <div class="fi-meta">${it.pessoa} · ${it.meta}</div>
               </div>
               <div class="fi-val">${fmtMoney(it.val)}</div>
@@ -1942,17 +1987,26 @@ window.renderCompras = function(){
     const isAssin = c.categoria === 'ASSINATURAS' && !c.parcelado;
     const recBadge = isAssin ? '<span style="font-size:10px;background:#2a1a4a;color:#a78bfa;border-radius:10px;padding:1px 7px;font-weight:600;margin-left:5px">Recorrente</span>' : '';
     const cancelInfo = isAssin && c.canceladoEm ? `<span style="font-size:11px;color:var(--text3);margin-left:4px">Cancelada ${fmtMes(c.canceladoEm)}</span>` : '';
+    // Estornos
+    const estornos = c.estornos || [];
+    const totalEstorno = estornos.reduce((s,e)=>s+e.valor,0);
+    const estornoBadge = totalEstorno>0 ? `<span class="estorno-badge">Estorno -${fmtMoney(totalEstorno)}</span>` : '';
+    const valorLiquido = c.valor - totalEstorno;
     return `<div class="item-row">
       <div class="item-left">
         <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
         <div>
-          <div class="item-name">${c.descricao}${recBadge}${cancelInfo}</div>
+          <div class="item-name">${c.descricao}${recBadge}${cancelInfo}${estornoBadge}</div>
           <div class="item-sub">${dataDisplay} · ${cartao?.nome||'?'} · ${pessoa?.nome||'?'} · ${parcStr}${catStr}</div>
         </div>
       </div>
       <div class="item-actions">
-        <span class="item-val">${fmtMoney(c.valor)}</span>
+        <div style="text-align:right">
+          <div class="item-val">${fmtMoney(c.valor)}</div>
+          ${totalEstorno>0?`<div style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace">Líq: ${fmtMoney(valorLiquido)}</div>`:''}
+        </div>
         ${isAssin && !c.canceladoEm ? `<button class="btn btn-sm" style="border-color:#6d28d9;color:#a78bfa;font-size:11px" onclick="cancelarAssinatura('${c.id}')">Cancelar</button>` : ''}
+        <button class="btn btn-sm btn-estorno" onclick="openEstorno('${c.id}')" title="Registrar estorno">↩</button>
         <button class="btn btn-sm btn-dup" onclick="duplicarCompra('${c.id}')" title="Duplicar">⊕</button>
         <button class="btn btn-sm btn-edit" onclick="openEditCompra('${c.id}')">Editar</button>
         <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
@@ -1987,6 +2041,12 @@ window.renderCompras = function(){
 
   // Helper: get sortable date string from compra (YYYY-MM-DD or YYYY-MM)
   const getDataSort = c => c.dataCompraFull || (c.dataCompra ? c.dataCompra + '-01' : (c.data1 ? c.data1 + '-01' : '0000-00-00'));
+
+// Helper: valor líquido de uma compra após estornos
+window.getValorLiquido = function(c){
+  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  return Math.max(0, c.valor - totalEst);
+}
   if(ordem === 'recente') lista.sort((a,b) => getDataSort(b).localeCompare(getDataSort(a)));
   else if(ordem === 'antiga') lista.sort((a,b) => getDataSort(a).localeCompare(getDataSort(b)));
   else if(ordem === 'az') lista.sort((a,b)=>a.descricao.localeCompare(b.descricao));
@@ -2407,13 +2467,13 @@ window.renderOrcamento = function(){
       const [py,pm]=c.data1.split('-').map(Number);
       const [cy,cm]=mes.split('-').map(Number);
       const diff=(cy-py)*12+(cm-pm);
-      if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+      if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
     } else if(c.categoria === 'ASSINATURAS' && !c.parcelado){
       const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
       if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)) vm = c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-      if(compMes===mes) vm=c.valor;
+      if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined){
       faturasPorPessoa[c.pessoaId] += vm;
@@ -2454,7 +2514,10 @@ window.renderOrcamento = function(){
       const sKey = `${c.id}_${mes}`;
       const stData = S.statusContas[sKey];
       const curStatus = stData?.status || 'ABERTO';
-      const curValor = stData?.valor !== undefined ? stData.valor : c.valor;
+      // Sempre usa c.valor como valor base (reflete edições na conta fixa)
+      // stData.valor é mantido apenas como registro do valor real pago
+      const curValor = c.valor;
+      const valorPago = stData?.valor !== undefined && stData.valor !== c.valor ? stData.valor : null;
       const hoje = new Date().getDate();
       const diasVenc = c.dia ? c.dia - hoje : null;
       let vencBadge = '';
@@ -2469,7 +2532,10 @@ window.renderOrcamento = function(){
           <div class="contas-item-sub">Venc. dia ${c.dia||'?'} · ${c.categoria||''} ${vencBadge}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="contas-item-val">${fmtMoney(curValor)}</span>
+          <div style="text-align:right">
+            <span class="contas-item-val">${fmtMoney(curValor)}</span>
+            ${valorPago!==null?`<div style="font-size:10px;color:var(--text3)">Pago: ${fmtMoney(valorPago)}</div>`:''}
+          </div>
           <div class="status-toggle">
             <button class="st-btn ${curStatus==='ABERTO'?'active-aberto':''}" onclick="setStatusInline('${c.id}','${mes}','ABERTO',${curValor})">Em Aberto</button>
             <button class="st-btn ${curStatus==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('${c.id}','${mes}','PENDENTE',${curValor})">Pendente</button>
@@ -2595,13 +2661,13 @@ window.renderOrcamento = function(){
           const [py,pm2]=c.data1.split('-').map(Number);
           const [cy2,cm2]=m.split('-').map(Number);
           const diff=(cy2-py)*12+(cm2-pm2);
-          if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+          if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
         } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
           const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
           if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
           const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-          if(compMes===m) vm=c.valor;
+          if(compMes===m) vm=getValorLiquido(c);
         }
         fat+=vm;
       });
@@ -2629,13 +2695,13 @@ window.renderOrcamento = function(){
       const [py,pm2]=c.data1.split('-').map(Number);
       const [cy2,cm2]=mes.split('-').map(Number);
       const diff=(cy2-py)*12+(cm2-pm2);
-      if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+      if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-      if(compMes===mes) vm=c.valor;
+      if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm>0){
       const cat=c.categoria||'SEM CATEGORIA';
@@ -3072,7 +3138,7 @@ function calcOrcPessoa(pessoaId, mes){
       }
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-      if(compMes===mes) vm=c.valor;
+      if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm>0){
       const cartao=S.cartoes.find(k=>k.id===c.cartaoId);
@@ -3083,8 +3149,8 @@ function calcOrcPessoa(pessoaId, mes){
   const contas = S.contasFixas.filter(c=>c.pessoaId===pessoaId&&c.fixa!==false).map(c=>{
     const sk=`${c.id}_${mes}`;
     const stData=S.statusContas[sk];
-    const curValor = stData?.valor !== undefined ? stData.valor : c.valor;
-    return {...c, status:stData?.status||'ABERTO', valorReal:curValor};
+    // Usar c.valor como base (reflete edições). stData.valor é só o registro do pago.
+    return {...c, status:stData?.status||'ABERTO', valorReal:c.valor};
   });
   const totalFixas = contas.reduce((s,c)=>s+c.valorReal,0);
   return {p, renda, eco, fatura, contas, comprasList, totalFixas, saldo:renda-totalFixas-fatura-eco};
@@ -3287,13 +3353,13 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const [py,pm]=c.data1.split('-').map(Number);
       const [cy,cm]=mes.split('-').map(Number);
       const diff=(cy-py)*12+(cm-pm);
-      if(diff>=0&&diff<c.parcelas) vm=c.valor/c.parcelas;
+      if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
-      if(compMes===mes) vm=c.valor;
+      if(compMes===mes) vm=getValorLiquido(c);
     }
     return vm>0;
   }).map(c=>{
@@ -3391,7 +3457,8 @@ window.gerarPDFCartoes = function(){
         return da.localeCompare(db);
       }).forEach(it=>{
         const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
-        body += `<tr><td>${it.descricao}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
+        const estTot = (it.estornos||[]).reduce((s,e)=>s+e.valor,0);
+        body += `<tr><td>${it.descricao}${estTot>0?` <span style="color:#166534;font-size:10px">[Estorno -${fmtMoney(estTot).replace('R$ ','')}]</span>`:''}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
       });
       body += `<tr class="subtotal"><td>Subtotal ${pg.nome}</td><td class="val green">${fmtMoney(pg.total)}</td></tr>`;
       body += `</table>`;
@@ -3469,6 +3536,85 @@ async function init(){
 }
 
 init();
+
+// ── ESTORNOS ──
+window.openEstorno = function(compraId){
+  const c = S.compras.find(x=>x.id===compraId);
+  if(!c) return;
+  const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
+  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  const liquido = c.valor - totalEst;
+  document.getElementById('est-compra-id').value = compraId;
+  document.getElementById('est-compra-nome').textContent = c.descricao;
+  document.getElementById('est-compra-info').textContent =
+    `Valor original: ${fmtMoney(c.valor)}  |  Já estornado: ${fmtMoney(totalEst)}  |  Saldo disponível: ${fmtMoney(liquido)}`;
+  document.getElementById('est-valor').value = '';
+  document.getElementById('est-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('est-motivo').value = '';
+  document.getElementById('est-info-calc').style.display = 'none';
+  // Histórico de estornos anteriores
+  const hist = document.getElementById('est-historico');
+  const histList = document.getElementById('est-historico-list');
+  if(c.estornos && c.estornos.length){
+    histList.innerHTML = c.estornos.map(e=>`
+      <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px dashed var(--border)">
+        <span>${e.motivo||'Sem motivo'} <span style="color:var(--text3)">${e.data||''}</span></span>
+        <span style="color:var(--accent);font-family:'DM Mono',monospace">-${fmtMoney(e.valor)}</span>
+      </div>`).join('');
+    hist.style.display = 'block';
+  } else {
+    hist.style.display = 'none';
+  }
+  document.getElementById('al-estorno').className = 'alert';
+  openModal('modal-estorno');
+}
+
+window.calcEstornoInfo = function(){
+  const compraId = document.getElementById('est-compra-id').value;
+  const c = S.compras.find(x=>x.id===compraId);
+  if(!c) return;
+  const val = parseMoney(document.getElementById('est-valor').value);
+  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  const liquido = c.valor - totalEst;
+  const info = document.getElementById('est-info-calc');
+  if(val > 0){
+    const novoLiquido = liquido - val;
+    info.textContent = `Após o estorno o valor líquido será ${fmtMoney(Math.max(0, novoLiquido))}`;
+    info.style.display = 'block';
+    info.style.color = novoLiquido < 0 ? 'var(--danger)' : 'var(--accent)';
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+window.salvarEstorno = async function(){
+  const compraId = document.getElementById('est-compra-id').value;
+  const val = parseMoney(document.getElementById('est-valor').value);
+  const data = document.getElementById('est-data').value;
+  const motivo = document.getElementById('est-motivo').value.trim();
+  const c = S.compras.find(x=>x.id===compraId);
+  if(!c) return;
+  if(!val || val <= 0) return showAlert('al-estorno','Informe o valor do estorno.','err');
+  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  if(val > c.valor - totalEst)
+    return showAlert('al-estorno','O valor do estorno não pode ser maior que o saldo disponível.','err');
+  const novoEstorno = {
+    id: uid(),
+    valor: val,
+    data: data ? new Date(data+'T12:00:00').toLocaleDateString('pt-BR') : '',
+    dataSort: data||'',
+    motivo: motivo||'Sem motivo'
+  };
+  const idx = S.compras.findIndex(x=>x.id===compraId);
+  S.compras[idx] = {
+    ...S.compras[idx],
+    estornos: [...(S.compras[idx].estornos||[]), novoEstorno]
+  };
+  await fbSet('compras', compraId, S.compras[idx]);
+  closeModal('modal-estorno');
+  render();
+  showAlert('al-compra', `Estorno de ${fmtMoney(val)} registrado com sucesso.`);
+}
 
 // ── PWA: Service Worker + Install Banner ──
 let _pwaPrompt = null;
