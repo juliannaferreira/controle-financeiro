@@ -1526,6 +1526,13 @@ function getMesAtual(){ return new Date().toISOString().slice(0,7) }
 function initials(n){ return (n||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() }
 function parseMoney(s){ return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0 }
 
+// ── Helper: valor líquido após estornos ──
+function getValorLiquido(c){
+  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  return Math.max(0, c.valor - totalEst);
+}
+window.getValorLiquido = getValorLiquido;
+
 // ── Mask money ──
 window.maskMoney = function(el){
   let v = el.value.replace(/\D/g,'');
@@ -2042,11 +2049,7 @@ window.renderCompras = function(){
   // Helper: get sortable date string from compra (YYYY-MM-DD or YYYY-MM)
   const getDataSort = c => c.dataCompraFull || (c.dataCompra ? c.dataCompra + '-01' : (c.data1 ? c.data1 + '-01' : '0000-00-00'));
 
-// Helper: valor líquido de uma compra após estornos
-window.getValorLiquido = function(c){
-  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-  return Math.max(0, c.valor - totalEst);
-}
+// getValorLiquido moved to top of script
   if(ordem === 'recente') lista.sort((a,b) => getDataSort(b).localeCompare(getDataSort(a)));
   else if(ordem === 'antiga') lista.sort((a,b) => getDataSort(a).localeCompare(getDataSort(b)));
   else if(ordem === 'az') lista.sort((a,b)=>a.descricao.localeCompare(b.descricao));
