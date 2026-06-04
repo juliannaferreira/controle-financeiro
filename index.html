@@ -676,6 +676,13 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             <div class="f"><label>1ª parcela <span style="font-weight:400;color:var(--accent);font-size:10px">(editável)</span></label><input id="c-data1" type="month" placeholder="Automático" title="Calculado automaticamente, mas pode ser editado"/></div>
           </div>
           <span id="c-parcela-info" style="font-size:12px;color:var(--purple);margin-top:2px;display:none;font-weight:500"></span>
+          <div class="checkbox-row" style="margin-top:4px">
+            <input type="checkbox" id="c-estorno-cb" onchange="toggleEstornoMode(this)"/>
+            <label for="c-estorno-cb" style="color:var(--accent)">Este lançamento é um estorno (valor será descontado da fatura)</label>
+          </div>
+          <div id="c-estorno-info" style="display:none;font-size:12px;color:var(--accent);background:var(--accent-dim);border:1px solid #2a6040;border-radius:var(--radius);padding:8px 12px;margin-bottom:4px">
+            ↩ O valor informado será registrado como negativo e descontado do total da fatura no mês selecionado.
+          </div>
           <button class="btn btn-accent" onclick="addCompra()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar compra
           </button>
@@ -1534,10 +1541,24 @@ function parseMoney(s){ return parseFloat(String(s).replace(/\./g,'').replace(',
 
 // ── Helper: valor líquido após estornos ──
 function getValorLiquido(c){
+  // New approach: estornos are separate compras with negative valor (c.isEstorno=true)
+  // Legacy: old estornos field still subtracted for backwards compatibility
   const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
+  if(c.isEstorno) return c.valor; // already negative
   return Math.max(0, c.valor - totalEst);
 }
 window.getValorLiquido = getValorLiquido;
+
+// ── Helper: recalcula mês da fatura considerando diaFecha/diaVenc do cartão ──
+function getMesFaturaCompra(c){
+  if(c.dataCompraFull && !c.parcelado && !c.isEstorno){
+    const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
+    if(cartao && cartao.diaFecha){
+      return calcFaturaDoCartao(c.cartaoId, c.dataCompraFull);
+    }
+  }
+  return c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
+}
 
 // ── Mask money ──
 window.maskMoney = function(el){
@@ -1795,15 +1816,15 @@ window.renderFaturas = function(){
         const compMes = getMesFaturaCompra(c);
         if(compMes === mes) vm = getValorLiquido(c);
       }
-      if(vm<=0) return;
+      if(vm===0) return;
       total += vm;
       const p = S.pessoas.find(p=>p.id===c.pessoaId);
       const nome = p?p.nome:'?';
       const cor = p?p.cor:'#888';
       if(!porPessoa[nome]) porPessoa[nome]={val:0, cor};
-      porPessoa[nome].val += vm;
-      const estVal=(c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-      itens.push({nome:c.descricao, val:vm, meta: parcDesc||'À vista', pessoa:nome, cor, temEstorno:estVal>0, estornoTotal:estVal});
+      porPessoa[nome].val += vm; // vm is negative for estornos
+      const isEst = c.isEstorno||false;
+      itens.push({nome:c.descricao, val:vm, meta: parcDesc||'À vista', pessoa:nome, cor, isEstorno:isEst});
     });
     totalGeral += total;
     if(total===0 && !isAdm) return '';
@@ -1839,10 +1860,10 @@ window.renderFaturas = function(){
           ${itens.map(it=>`
             <div class="fatura-item">
               <div class="fi-left">
-                <div class="fi-name">${it.nome}${it.temEstorno?`<span style="font-size:10px;color:#34d399;margin-left:5px">↩-${fmtMoney(it.estornoTotal)}</span>`:''}</div>
+                <div class="fi-name" style="${it.isEstorno?'color:rgba(255,150,150,0.95)':''}">${it.isEstorno?'↩ ':''}${it.nome}</div>
                 <div class="fi-meta">${it.pessoa} · ${it.meta}</div>
               </div>
-              <div class="fi-val">${fmtMoney(it.val)}</div>
+              <div class="fi-val" style="${it.isEstorno?'color:rgba(255,150,150,0.9)':''}">${it.isEstorno?'-':''}${fmtMoney(Math.abs(it.val))}</div>
             </div>`).join('')}
         </div>`:'<div class="fatura-empty">Sem compras neste mês</div>'}
       </div>
@@ -1961,9 +1982,12 @@ window.addCompra = async function(){
   const fatMesCalculado = calcFaturaDoCartao(cartaoId, dataCompraStr);
   const data1Manual = document.getElementById('c-data1').value;
   const fatMes = (data1Manual && data1Manual !== fatMesCalculado) ? data1Manual : fatMesCalculado;
+  const isEstorno = document.getElementById('c-estorno-cb')?.checked || false;
+  const valorFinal = isEstorno ? -Math.abs(valor) : valor;
   const id = uid();
-  const novo = {id, descricao:desc, valor, cartaoId, pessoaId, parcelado:parc,
-    parcelas:parc?nparc:1, data1: fatMes, dataCompra: fatMes, dataCompraFull: dataCompraStr, categoria:cat};
+  const novo = {id, descricao:desc, valor:valorFinal, cartaoId, pessoaId, parcelado:isEstorno?false:parc,
+    parcelas:(!isEstorno&&parc)?nparc:1, data1: fatMes, dataCompra: fatMes, dataCompraFull: dataCompraStr,
+    categoria:cat, isEstorno: isEstorno||false};
   S.compras.push(novo);
   await fbSet('compras', id, novo);
   // Limpar form
@@ -1972,9 +1996,25 @@ window.addCompra = async function(){
   document.getElementById('c-cat').value='ALIMENTACAO';
   document.getElementById('c-outro-wrap').style.display='none';
   document.getElementById('c-parc-cb').checked=false;
+  document.getElementById('c-estorno-cb').checked=false;
+  document.getElementById('c-estorno-info').style.display='none';
   document.getElementById('parc-fields').className='parcel-grid';
   render();
-  showAlert('al-compra','Compra adicionada!');
+  showAlert('al-compra', isEstorno ? 'Estorno registrado! Valor descontado da fatura.' : 'Compra adicionada!');
+}
+
+window.toggleEstornoMode = function(cb){
+  const info = document.getElementById('c-estorno-info');
+  const parcCb = document.getElementById('c-parc-cb');
+  const parcFields = document.getElementById('parc-fields');
+  info.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked){
+    // Estorno não pode ser parcelado
+    parcCb.checked = false;
+    parcFields.className = 'parcel-grid';
+    updateParcelaInfo();
+  }
+  parcCb.disabled = cb.checked;
 }
 
 window.renderCompras = function(){
@@ -1994,17 +2034,16 @@ window.renderCompras = function(){
   const renderItem = c => {
     const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
     const pessoa = S.pessoas.find(p=>p.id===c.pessoaId);
-    const parcStr = c.parcelado ? `${c.parcelas}x de ${fmtMoney(c.valor/c.parcelas)} · 1ª ${fmtMes(c.data1)}` : 'À vista';
+    const valorAbs = Math.abs(c.valor);
+    const parcStr = c.parcelado ? `${c.parcelas}x de ${fmtMoney(valorAbs/c.parcelas)} · 1ª ${fmtMes(c.data1)}` : 'À vista';
     const dataDisplay = c.dataCompraFull ? new Date(c.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(c.dataCompra||c.data1);
     const catStr = c.categoria ? ` · ${c.categoria}` : '';
     const isAssin = c.categoria === 'ASSINATURAS' && !c.parcelado;
     const recBadge = isAssin ? '<span style="font-size:10px;background:#2a1a4a;color:#a78bfa;border-radius:10px;padding:1px 7px;font-weight:600;margin-left:5px">Recorrente</span>' : '';
     const cancelInfo = isAssin && c.canceladoEm ? `<span style="font-size:11px;color:var(--text3);margin-left:4px">Cancelada ${fmtMes(c.canceladoEm)}</span>` : '';
-    // Estornos
-    const estornos = c.estornos || [];
-    const totalEstorno = estornos.reduce((s,e)=>s+e.valor,0);
-    const estornoBadge = totalEstorno>0 ? `<span class="estorno-badge">Estorno -${fmtMoney(totalEstorno)}</span>` : '';
-    const valorLiquido = c.valor - totalEstorno;
+    const estornoBadge = c.isEstorno ? '<span class="estorno-badge">↩ ESTORNO</span>' : '';
+    const totalEstorno = 0;
+    const valorLiquido = c.valor;
     return `<div class="item-row">
       <div class="item-left">
         <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
@@ -2015,11 +2054,10 @@ window.renderCompras = function(){
       </div>
       <div class="item-actions">
         <div style="text-align:right">
-          <div class="item-val">${fmtMoney(c.valor)}</div>
-          ${totalEstorno>0?`<div style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace">Líq: ${fmtMoney(valorLiquido)}</div>`:''}
+          <div class="item-val" style="${c.isEstorno?'color:var(--danger)':''}">${c.isEstorno?'-':''}${fmtMoney(Math.abs(c.valor))}</div>
         </div>
         ${isAssin && !c.canceladoEm ? `<button class="btn btn-sm" style="border-color:#6d28d9;color:#a78bfa;font-size:11px" onclick="cancelarAssinatura('${c.id}')">Cancelar</button>` : ''}
-        <button class="btn btn-sm btn-estorno" onclick="openEstorno('${c.id}')" title="Registrar estorno">↩</button>
+        ${!c.isEstorno?`<button class="btn btn-sm btn-estorno" onclick="openEstorno('${c.id}')" title="Registrar estorno">↩</button>`:''}
         <button class="btn btn-sm btn-dup" onclick="duplicarCompra('${c.id}')" title="Duplicar">⊕</button>
         <button class="btn btn-sm btn-edit" onclick="openEditCompra('${c.id}')">Editar</button>
         <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
@@ -2488,7 +2526,7 @@ window.renderOrcamento = function(){
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=getValorLiquido(c);
     }
-    if(vm>0 && faturasPorPessoa[c.pessoaId]!==undefined){
+    if(vm!==0 && faturasPorPessoa[c.pessoaId]!==undefined){
       faturasPorPessoa[c.pessoaId] += vm;
       if(!faturasPorCartao[c.pessoaId][c.cartaoId]) faturasPorCartao[c.pessoaId][c.cartaoId]=0;
       faturasPorCartao[c.pessoaId][c.cartaoId] += vm;
@@ -3375,7 +3413,7 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
       if(compMes===mes) vm=getValorLiquido(c);
     }
-    return vm>0;
+    return vm!==0;
   }).map(c=>{
     let vm=0, parcDesc='À vista';
     if(c.parcelado&&c.data1){
