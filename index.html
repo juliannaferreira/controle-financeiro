@@ -897,6 +897,12 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             <div class="f"><label>Comprador</label>
               <select id="relc-pessoa"><option value="">Todos os compradores</option></select>
             </div>
+            <div class="f"><label>Agrupamento</label>
+              <select id="relc-agrup">
+                <option value="comprador">Por comprador</option>
+                <option value="cronologico">Cronológico (sem separação)</option>
+              </select>
+            </div>
           </div>
           <div style="margin-top:1rem;display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-accent" onclick="gerarPDFCartoes()">
@@ -1719,9 +1725,9 @@ function buildSelects(){
     if(!el) return;
     const cur = el.value;
     el.innerHTML = id.startsWith('filtro') ? '<option value="">Todos</option>' : '<option value="">Selecione...</option>';
-    let lista = S.pessoas;
+    let lista = [...S.pessoas].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
     if(SESSION && SESSION.role!=='adm' && SESSION.compradores.length)
-      lista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
+      lista = lista.filter(p=>SESSION.compradores.includes(p.id));
     lista.forEach(p=>{ el.innerHTML += `<option value="${p.id}">${p.nome}</option>` });
     el.value = cur;
   });
@@ -1761,8 +1767,8 @@ window.renderFaturas = function(){
   });
   if(ordemFat==='maior') cartoesComTotal.sort((a,b)=>b.total-a.total);
   else if(ordemFat==='menor') cartoesComTotal.sort((a,b)=>a.total-b.total);
-  else if(ordemFat==='az') cartoesComTotal.sort((a,b)=>a.cartao.nome.localeCompare(b.cartao.nome));
   else if(ordemFat==='za') cartoesComTotal.sort((a,b)=>b.cartao.nome.localeCompare(a.cartao.nome));
+  else cartoesComTotal.sort((a,b)=>a.cartao.nome.localeCompare(b.cartao.nome,'pt-BR')); // az = padrão
   const html = cartoesComTotal.map(({cartao})=>{
     const compras = S.compras.filter(c=>c.cartaoId===cartao.id);
     let total = 0;
@@ -2327,8 +2333,8 @@ window.removePessoa = async function(id){
 window.renderPessoas = function(){
   const el = document.getElementById('pessoas-list');
   const isAdm = SESSION && SESSION.role==='adm';
-  let lista = S.pessoas;
-  if(!isAdm && SESSION.compradores.length) lista = S.pessoas.filter(p=>SESSION.compradores.includes(p.id));
+  let lista = [...S.pessoas].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  if(!isAdm && SESSION.compradores.length) lista = lista.filter(p=>SESSION.compradores.includes(p.id));
   if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhum comprador</div>'; return; }
   el.innerHTML = lista.map(p=>`
     <div class="item-row">
@@ -2428,8 +2434,12 @@ window.renderContasFixas = function(){
   const el = document.getElementById('contas-list');
   if(!el) return;
   const isAdm = SESSION && SESSION.role==='adm';
-  let lista = S.contasFixas;
-  if(!isAdm && SESSION.compradores.length) lista = S.contasFixas.filter(c=>SESSION.compradores.includes(c.pessoaId));
+  let lista = [...S.contasFixas].sort((a,b)=>{
+    const pa = S.pessoas.find(p=>p.id===a.pessoaId)?.nome||'';
+    const pb = S.pessoas.find(p=>p.id===b.pessoaId)?.nome||'';
+    return pa.localeCompare(pb,'pt-BR') || a.descricao.localeCompare(b.descricao,'pt-BR');
+  });
+  if(!isAdm && SESSION.compradores.length) lista = lista.filter(c=>SESSION.compradores.includes(c.pessoaId));
   if(!lista.length){ el.innerHTML='<div class="list-empty">Nenhuma conta fixa</div>'; return; }
   el.innerHTML = lista.map(c=>{
     const p = S.pessoas.find(x=>x.id===c.pessoaId);
@@ -2486,9 +2496,10 @@ window.renderOrcamento = function(){
   });
 
   const isAdmOrc = SESSION && SESSION.role==='adm';
-  const pessoasOrc = (!isAdmOrc && SESSION.compradores.length)
+  const pessoasOrc = ((!isAdmOrc && SESSION.compradores.length)
     ? S.pessoas.filter(p => SESSION.compradores.includes(p.id) && p.exibirOrcamento !== false)
-    : S.pessoas.filter(p => p.exibirOrcamento !== false);
+    : S.pessoas.filter(p => p.exibirOrcamento !== false)
+  ).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
   const cards = pessoasOrc.map(p=>{
     const rKey = `${p.id}_${mes}`;
     const renda = S.rendas[rKey]||0;
@@ -2650,7 +2661,7 @@ window.renderOrcamento = function(){
     return `${y}-${String(m).padStart(2,'0')}`;
   });
 
-  const histHtml = S.pessoas.map(p=>{
+  const histHtml = [...S.pessoas].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(p=>{
     const vals = meses6.map(m=>{
       const rk = `${p.id}_${m}`;
       const renda = S.rendas[rk]||0;
@@ -2843,7 +2854,7 @@ window.removeUsuario = async function(id){
 window.renderUsuarios = function(){
   const el = document.getElementById('usuarios-list');
   if(!el) return;
-  el.innerHTML = S.usuarios.map(u=>{
+  el.innerHTML = [...S.usuarios].sort((a,b)=>(a.login||'').localeCompare(b.login||'')).map(u=>{
     const isAdm = u.role==='adm';
     const comprNomes = isAdm ? 'Acesso total'
       : (u.compradores?.length
@@ -3107,7 +3118,7 @@ window.initRelatorio = function(){
   if(relcCartao){
     const curC = relcCartao.value;
     relcCartao.innerHTML = '<option value="">Todos os cartões</option>';
-    S.cartoes.forEach(c=>{ relcCartao.innerHTML+=`<option value="${c.id}">${c.nome}</option>`; });
+    [...S.cartoes].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).forEach(c=>{ relcCartao.innerHTML+=`<option value="${c.id}">${c.nome}</option>`; });
     relcCartao.value = curC;
   }
   const relcPessoa = document.getElementById('relc-pessoa');
@@ -3387,8 +3398,10 @@ window.previewRelCartoes = function(){
   const mes = document.getElementById('relc-mes').value || getMesAtual();
   const cartaoFiltro = document.getElementById('relc-cartao').value;
   const pessoaFiltro = document.getElementById('relc-pessoa').value;
+  const agrup = document.getElementById('relc-agrup')?.value || 'comprador';
   const cartoes = (cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : [...S.cartoes])
     .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const sortFn = (a,b)=>(a.dataSort||'').localeCompare(b.dataSort||'');
 
   let html = `<div style="font-size:13px;line-height:1.7">`;
   html += `<div style="font-weight:700;font-size:15px;margin-bottom:1rem;border-bottom:2px solid var(--accent);padding-bottom:.5rem">Compras por Cartão — ${fmtMes(mes)}</div>`;
@@ -3401,29 +3414,50 @@ window.previewRelCartoes = function(){
     html += `<div style="font-weight:700;font-size:14px;margin-bottom:.75rem;display:flex;align-items:center;gap:8px">
       <div style="width:14px;height:14px;border-radius:50%;background:${cartao.cor||'#888'}"></div>
       ${cartao.nome} — Total: ${fmtMoney(totalCartao)}</div>`;
-    // Agrupar por pessoa
-    const porPessoa = {};
-    compras.forEach(c=>{
-      if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
-      porPessoa[c.pessoaId].items.push(c);
-      porPessoa[c.pessoaId].total += c.vm;
-    });
-    Object.values(porPessoa).forEach(pg=>{
-      html += `<div style="margin:.5rem 0 .25rem;display:flex;align-items:center;gap:6px">
-        <div style="width:12px;height:12px;border-radius:50%;background:${pg.cor}"></div>
-        <span style="font-size:12px;font-weight:600;color:var(--text)">${pg.nome}</span>
-        <span style="font-size:11px;color:var(--text3)">— ${fmtMoney(pg.total)}</span></div>`;
-      [...pg.items].sort((a,b)=>{
-        const da = a.dataCompraFull || (a.dataCompra ? a.dataCompra+'-01' : (a.data1 ? a.data1+'-01' : '0000-00-00'));
-        const db = b.dataCompraFull || (b.dataCompra ? b.dataCompra+'-01' : (b.data1 ? b.data1+'-01' : '0000-00-00'));
-        return da.localeCompare(db);
-      }).forEach(it=>{
+
+    if(agrup === 'cronologico'){
+      // Lista única cronológica com comprador como coluna
+      const sorted = [...compras].sort(sortFn);
+      html += `<table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="border-bottom:2px solid var(--border2)">
+          <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:600;font-size:10px">DATA</th>
+          <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:600;font-size:10px">DESCRIÇÃO</th>
+          <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:600;font-size:10px">COMPRADOR</th>
+          <th style="text-align:left;padding:4px 6px;color:var(--text2);font-weight:600;font-size:10px">PARCELA</th>
+          <th style="text-align:right;padding:4px 6px;color:var(--text2);font-weight:600;font-size:10px">VALOR</th>
+        </tr></thead><tbody>`;
+      sorted.forEach(it=>{
         const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
-        html += `<div style="display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:11px;border-bottom:1px dashed var(--border)">
-          <span>${it.descricao} <span style="color:var(--text3)">(${dataDp} · ${it.parcDesc} · ${it.categoria||''})</span></span>
-          <span style="font-family:monospace">${fmtMoney(it.vm)}</span></div>`;
+        html += `<tr style="border-bottom:1px dashed var(--border)">
+          <td style="padding:4px 6px;color:var(--text2);white-space:nowrap">${dataDp}</td>
+          <td style="padding:4px 6px">${it.descricao}${it.categoria?` <span style="font-size:10px;color:var(--text3)">(${it.categoria})</span>`:''}</td>
+          <td style="padding:4px 6px;color:var(--text2)">${it.pessoaNome}</td>
+          <td style="padding:4px 6px;color:var(--text2)">${it.parcDesc}</td>
+          <td style="padding:4px 6px;text-align:right;font-family:monospace;font-weight:600">${fmtMoney(it.vm)}</td>
+        </tr>`;
       });
-    });
+      html += `</tbody></table>`;
+    } else {
+      // Agrupado por comprador (padrão)
+      const porPessoa = {};
+      compras.forEach(c=>{
+        if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
+        porPessoa[c.pessoaId].items.push(c);
+        porPessoa[c.pessoaId].total += c.vm;
+      });
+      Object.values(porPessoa).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).forEach(pg=>{
+        html += `<div style="margin:.5rem 0 .25rem;display:flex;align-items:center;gap:6px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${pg.cor}"></div>
+          <span style="font-size:12px;font-weight:600;color:var(--text)">${pg.nome}</span>
+          <span style="font-size:11px;color:var(--text3)">— ${fmtMoney(pg.total)}</span></div>`;
+        [...pg.items].sort(sortFn).forEach(it=>{
+          const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
+          html += `<div style="display:flex;justify-content:space-between;padding:3px 0 3px 16px;font-size:11px;border-bottom:1px dashed var(--border)">
+            <span>${it.descricao} <span style="color:var(--text3)">(${dataDp} · ${it.parcDesc} · ${it.categoria||''})</span></span>
+            <span style="font-family:monospace">${fmtMoney(it.vm)}</span></div>`;
+        });
+      });
+    }
     html += `</div>`;
   });
   html += `</div>`;
@@ -3437,8 +3471,10 @@ window.gerarPDFCartoes = function(){
   const mes = document.getElementById('relc-mes').value || getMesAtual();
   const cartaoFiltro = document.getElementById('relc-cartao').value;
   const pessoaFiltro = document.getElementById('relc-pessoa').value;
+  const agrup = document.getElementById('relc-agrup')?.value || 'comprador';
   const cartoes = (cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : [...S.cartoes])
     .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const sortFnPDF = (a,b)=>(a.dataSort||'').localeCompare(b.dataSort||'');
 
   let body = '';
   cartoes.forEach(cartao=>{
@@ -3447,27 +3483,47 @@ window.gerarPDFCartoes = function(){
     const totalCartao = compras.reduce((s,c)=>s+c.vm,0);
     body += `<div class="cartao-section">
       <h2><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${cartao.cor||'#888'};vertical-align:middle;margin-right:6px"></span>${cartao.nome} — Total: ${fmtMoney(totalCartao)}</h2>`;
-    const porPessoa = {};
-    compras.forEach(c=>{
-      if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
-      porPessoa[c.pessoaId].items.push(c);
-      porPessoa[c.pessoaId].total += c.vm;
-    });
-    Object.values(porPessoa).forEach(pg=>{
-      body += `<div class="pessoa-label">${pg.nome} — ${fmtMoney(pg.total)}</div>`;
-      body += `<table>`;
-      [...pg.items].sort((a,b)=>{
-        const da = a.dataCompraFull || (a.dataCompra ? a.dataCompra+'-01' : (a.data1 ? a.data1+'-01' : '0000-00-00'));
-        const db = b.dataCompraFull || (b.dataCompra ? b.dataCompra+'-01' : (b.data1 ? b.data1+'-01' : '0000-00-00'));
-        return da.localeCompare(db);
-      }).forEach(it=>{
+
+    if(agrup === 'cronologico'){
+      const sorted = [...compras].sort(sortFnPDF);
+      body += `<table><thead><tr style="background:#f3f4f6">
+        <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600">DATA</th>
+        <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600">DESCRIÇÃO</th>
+        <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600">COMPRADOR</th>
+        <th style="text-align:left;padding:4px 6px;font-size:10px;font-weight:600">PARCELA</th>
+        <th style="text-align:right;padding:4px 6px;font-size:10px;font-weight:600">VALOR</th>
+      </tr></thead><tbody>`;
+      sorted.forEach(it=>{
         const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
         const estTot = (it.estornos||[]).reduce((s,e)=>s+e.valor,0);
-        body += `<tr><td>${it.descricao}${estTot>0?` <span style="color:#166534;font-size:10px">[Estorno -${fmtMoney(estTot).replace('R$ ','')}]</span>`:''}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
+        body += `<tr>
+          <td style="white-space:nowrap">${dataDp}</td>
+          <td>${it.descricao}${estTot>0?` <span style="color:#166534;font-size:9px">[Est.-${fmtMoney(estTot).replace('R$ ','')}]</span>`:''}${it.categoria?` <small>(${it.categoria})</small>`:''}</td>
+          <td>${it.pessoaNome}</td>
+          <td>${it.parcDesc}</td>
+          <td class="val" style="text-align:right">${fmtMoney(it.vm)}</td>
+        </tr>`;
       });
-      body += `<tr class="subtotal"><td>Subtotal ${pg.nome}</td><td class="val green">${fmtMoney(pg.total)}</td></tr>`;
-      body += `</table>`;
-    });
+      body += `</tbody></table>`;
+    } else {
+      const porPessoa = {};
+      compras.forEach(c=>{
+        if(!porPessoa[c.pessoaId]) porPessoa[c.pessoaId]={nome:c.pessoaNome,cor:c.pessoaCor,items:[],total:0};
+        porPessoa[c.pessoaId].items.push(c);
+        porPessoa[c.pessoaId].total += c.vm;
+      });
+      Object.values(porPessoa).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).forEach(pg=>{
+        body += `<div class="pessoa-label">${pg.nome} — ${fmtMoney(pg.total)}</div>`;
+        body += `<table>`;
+        [...pg.items].sort(sortFnPDF).forEach(it=>{
+          const dataDp = it.dataCompraFull ? new Date(it.dataCompraFull+'T12:00:00').toLocaleDateString('pt-BR') : fmtMes(it.dataCompra||it.data1);
+          const estTot = (it.estornos||[]).reduce((s,e)=>s+e.valor,0);
+          body += `<tr><td>${it.descricao}${estTot>0?` <span style="color:#166534;font-size:10px">[Estorno -${fmtMoney(estTot).replace('R$ ','')}]</span>`:''}<br/><small>${dataDp} · ${it.parcDesc} · ${it.categoria||''}</small></td><td class="val">${fmtMoney(it.vm)}</td></tr>`;
+        });
+        body += `<tr class="subtotal"><td>Subtotal ${pg.nome}</td><td class="val green">${fmtMoney(pg.total)}</td></tr>`;
+        body += `</table>`;
+      });
+    }
     body += `<div class="total-row"><span>Total ${cartao.nome}</span><span class="green">${fmtMoney(totalCartao)}</span></div>`;
     body += `</div>`;
   });
