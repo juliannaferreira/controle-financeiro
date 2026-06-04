@@ -1735,9 +1735,9 @@ window.renderFaturas = function(){
         if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
       } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
         const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
-        if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
+        if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=getValorLiquido(c);
       } else {
-        const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+        const compMes=getMesFaturaCompra(c);
         if(compMes===mes) vm=getValorLiquido(c);
       }
       total+=vm;
@@ -2481,7 +2481,7 @@ window.renderOrcamento = function(){
       const startMes = c.dataCompra ? c.dataCompra.slice(0,7) : (c.data1||'');
       if(startMes && startMes <= mes && (!c.canceladoEm || c.canceladoEm > mes)) vm = getValorLiquido(c);
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm!==0 && faturasPorPessoa[c.pessoaId]!==undefined){
@@ -2676,7 +2676,7 @@ window.renderOrcamento = function(){
           const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
           if(startMes&&startMes<=m&&(!c.canceladoEm||c.canceladoEm>m)) vm=c.valor;
         } else {
-          const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+          const compMes=getMesFaturaCompra(c);
           if(compMes===m) vm=getValorLiquido(c);
         }
         fat+=vm;
@@ -2710,7 +2710,7 @@ window.renderOrcamento = function(){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
       if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm>0){
@@ -2995,7 +2995,7 @@ window.openComprasCartao = function(pessoaId, mes){
       const diff=(cy-py)*12+(cm-pm);
       return diff>=0&&diff<c.parcelas;
     }
-    const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+    const compMes=getMesFaturaCompra(c);
     return compMes===mes;
   });
   const el = document.getElementById('orc-compras-cartao-list');
@@ -3147,7 +3147,7 @@ function calcOrcPessoa(pessoaId, mes){
         vm = getValorLiquido(c); parcDesc = 'Recorrente';
       }
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=getValorLiquido(c);
     }
     if(vm>0){
@@ -3366,9 +3366,9 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       if(diff>=0&&diff<c.parcelas) vm=getValorLiquido(c)/c.parcelas;
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
       const startMes=c.dataCompraFull?c.dataCompraFull.slice(0,7):(c.dataCompra?c.dataCompra.slice(0,7):(c.data1||''));
-      if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=c.valor;
+      if(startMes&&startMes<=mes&&(!c.canceladoEm||c.canceladoEm>mes)) vm=getValorLiquido(c);
     } else {
-      const compMes=c.dataCompra?c.dataCompra.slice(0,7):c.data1;
+      const compMes=getMesFaturaCompra(c);
       if(compMes===mes) vm=getValorLiquido(c);
     }
     return vm!==0;
@@ -3382,7 +3382,10 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
       vm=getValorLiquido(c); parcDesc='Recorrente';
     } else {
-      vm=getValorLiquido(c);
+      // Recalculate using diaFecha for accuracy
+      const compMes=getMesFaturaCompra(c);
+      if(compMes===mes) vm=getValorLiquido(c);
+      else vm=0;
     }
     const pessoa=S.pessoas.find(p=>p.id===c.pessoaId);
     const dataSort = c.dataCompraFull || (c.dataCompra ? c.dataCompra+'-01' : (c.data1 ? c.data1+'-01' : '0000-00-00'));
