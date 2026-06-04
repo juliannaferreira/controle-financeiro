@@ -3371,11 +3371,11 @@ function getComprasParaFatura(mes, cartaoId, pessoaId){
       const [py,pm]=c.data1.split('-').map(Number);
       const [cy,cm]=mes.split('-').map(Number);
       const diff=(cy-py)*12+(cm-pm);
-      if(diff>=0&&diff<c.parcelas){vm=c.valor/c.parcelas;parcDesc=`Parc. ${diff+1}/${c.parcelas}`;}
+      if(diff>=0&&diff<c.parcelas){vm=getValorLiquido(c)/c.parcelas;parcDesc=`Parc. ${diff+1}/${c.parcelas}`;}
     } else if(c.categoria==='ASSINATURAS'&&!c.parcelado){
-      vm=c.valor; parcDesc='Recorrente';
+      vm=getValorLiquido(c); parcDesc='Recorrente';
     } else {
-      vm=c.valor;
+      vm=getValorLiquido(c);
     }
     const pessoa=S.pessoas.find(p=>p.id===c.pessoaId);
     const dataSort = c.dataCompraFull || (c.dataCompra ? c.dataCompra+'-01' : (c.data1 ? c.data1+'-01' : '0000-00-00'));
@@ -3387,7 +3387,8 @@ window.previewRelCartoes = function(){
   const mes = document.getElementById('relc-mes').value || getMesAtual();
   const cartaoFiltro = document.getElementById('relc-cartao').value;
   const pessoaFiltro = document.getElementById('relc-pessoa').value;
-  const cartoes = cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : S.cartoes;
+  const cartoes = (cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : [...S.cartoes])
+    .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 
   let html = `<div style="font-size:13px;line-height:1.7">`;
   html += `<div style="font-weight:700;font-size:15px;margin-bottom:1rem;border-bottom:2px solid var(--accent);padding-bottom:.5rem">Compras por Cartão — ${fmtMes(mes)}</div>`;
@@ -3436,7 +3437,8 @@ window.gerarPDFCartoes = function(){
   const mes = document.getElementById('relc-mes').value || getMesAtual();
   const cartaoFiltro = document.getElementById('relc-cartao').value;
   const pessoaFiltro = document.getElementById('relc-pessoa').value;
-  const cartoes = cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : S.cartoes;
+  const cartoes = (cartaoFiltro ? S.cartoes.filter(c=>c.id===cartaoFiltro) : [...S.cartoes])
+    .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 
   let body = '';
   cartoes.forEach(cartao=>{
