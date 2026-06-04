@@ -100,10 +100,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── Duplicate btn ── */
 .btn-dup{border-color:#2a1a4a;color:var(--purple)}
 .btn-dup:hover{background:var(--purple-dim)}
-.btn-estorno{border-color:#0e4a3a;color:#34d399}
-.btn-estorno:hover{background:#0a2e24}
-.estorno-badge{font-size:10px;background:#0a2e24;color:#34d399;border:1px solid #0e4a3a;border-radius:10px;padding:1px 7px;font-weight:600;margin-left:5px}
-.estorno-total{font-size:11px;color:#34d399;margin-left:4px;font-family:'DM Mono',monospace}
+
+
 
 /* ── PWA Install Banner ── */
 #pwa-banner{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:300;background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:.85rem 1.25rem;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-width:380px;width:calc(100% - 2rem)}
@@ -975,47 +973,7 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
   </div>
 </div>
 
-<!-- Modal Registrar Estorno -->
-<div class="modal-overlay" id="modal-estorno">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">
-      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-      Registrar Estorno
-    </div>
-    <div class="alert" id="al-estorno"></div>
-    <input type="hidden" id="est-compra-id"/>
-    <p id="est-compra-nome" style="font-weight:600;font-size:14px;margin-bottom:.25rem"></p>
-    <p id="est-compra-info" style="font-size:12px;color:var(--text2);margin-bottom:1rem"></p>
-    <div class="form-grid">
-      <div class="f">
-        <label>Valor estornado (R$)</label>
-        <input id="est-valor" placeholder="0,00" oninput="maskMoney(this);calcEstornoInfo()"/>
-      </div>
-      <div class="f">
-        <label>Data do estorno</label>
-        <input id="est-data" type="date"/>
-      </div>
-    </div>
-    <div class="f" style="margin-top:4px">
-      <label>Motivo (opcional)</label>
-      <input id="est-motivo" class="upper" placeholder="Ex: PRODUTO DEVOLVIDO"/>
-    </div>
-    <div id="est-info-calc" style="font-size:12px;color:var(--accent);margin-top:.5rem;display:none"></div>
-    <div id="est-historico" style="margin-top:.75rem;display:none">
-      <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:.4rem">Estornos anteriores</div>
-      <div id="est-historico-list"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeModal('modal-estorno')">Cancelar</button>
-      <button class="btn btn-accent" onclick="salvarEstorno()">
-        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-        Registrar Estorno
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Editar Cartão -->
+<!-- Modal Editar Cartão<!-- Modal Editar Cartão -->
 <div class="modal-overlay" id="modal-cartao">
   <div class="modal">
     <div class="modal-title"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editar Cartão</div>
@@ -2057,7 +2015,7 @@ window.renderCompras = function(){
           <div class="item-val" style="${c.isEstorno?'color:var(--danger)':''}">${c.isEstorno?'-':''}${fmtMoney(Math.abs(c.valor))}</div>
         </div>
         ${isAssin && !c.canceladoEm ? `<button class="btn btn-sm" style="border-color:#6d28d9;color:#a78bfa;font-size:11px" onclick="cancelarAssinatura('${c.id}')">Cancelar</button>` : ''}
-        ${!c.isEstorno?`<button class="btn btn-sm btn-estorno" onclick="openEstorno('${c.id}')" title="Registrar estorno">↩</button>`:''}
+
         <button class="btn btn-sm btn-dup" onclick="duplicarCompra('${c.id}')" title="Duplicar">⊕</button>
         <button class="btn btn-sm btn-edit" onclick="openEditCompra('${c.id}')">Editar</button>
         <button class="btn btn-sm btn-del" onclick="removeCompra('${c.id}')">Remover</button>
@@ -3637,83 +3595,7 @@ async function init(){
 init();
 
 // ── ESTORNOS ──
-window.openEstorno = function(compraId){
-  const c = S.compras.find(x=>x.id===compraId);
-  if(!c) return;
-  const cartao = S.cartoes.find(k=>k.id===c.cartaoId);
-  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-  const liquido = c.valor - totalEst;
-  document.getElementById('est-compra-id').value = compraId;
-  document.getElementById('est-compra-nome').textContent = c.descricao;
-  document.getElementById('est-compra-info').textContent =
-    `Valor original: ${fmtMoney(c.valor)}  |  Já estornado: ${fmtMoney(totalEst)}  |  Saldo disponível: ${fmtMoney(liquido)}`;
-  document.getElementById('est-valor').value = '';
-  document.getElementById('est-data').value = new Date().toISOString().slice(0,10);
-  document.getElementById('est-motivo').value = '';
-  document.getElementById('est-info-calc').style.display = 'none';
-  // Histórico de estornos anteriores
-  const hist = document.getElementById('est-historico');
-  const histList = document.getElementById('est-historico-list');
-  if(c.estornos && c.estornos.length){
-    histList.innerHTML = c.estornos.map(e=>`
-      <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px dashed var(--border)">
-        <span>${e.motivo||'Sem motivo'} <span style="color:var(--text3)">${e.data||''}</span></span>
-        <span style="color:var(--accent);font-family:'DM Mono',monospace">-${fmtMoney(e.valor)}</span>
-      </div>`).join('');
-    hist.style.display = 'block';
-  } else {
-    hist.style.display = 'none';
-  }
-  document.getElementById('al-estorno').className = 'alert';
-  openModal('modal-estorno');
-}
 
-window.calcEstornoInfo = function(){
-  const compraId = document.getElementById('est-compra-id').value;
-  const c = S.compras.find(x=>x.id===compraId);
-  if(!c) return;
-  const val = parseMoney(document.getElementById('est-valor').value);
-  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-  const liquido = c.valor - totalEst;
-  const info = document.getElementById('est-info-calc');
-  if(val > 0){
-    const novoLiquido = liquido - val;
-    info.textContent = `Após o estorno o valor líquido será ${fmtMoney(Math.max(0, novoLiquido))}`;
-    info.style.display = 'block';
-    info.style.color = novoLiquido < 0 ? 'var(--danger)' : 'var(--accent)';
-  } else {
-    info.style.display = 'none';
-  }
-}
-
-window.salvarEstorno = async function(){
-  const compraId = document.getElementById('est-compra-id').value;
-  const val = parseMoney(document.getElementById('est-valor').value);
-  const data = document.getElementById('est-data').value;
-  const motivo = document.getElementById('est-motivo').value.trim();
-  const c = S.compras.find(x=>x.id===compraId);
-  if(!c) return;
-  if(!val || val <= 0) return showAlert('al-estorno','Informe o valor do estorno.','err');
-  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-  if(val > c.valor - totalEst)
-    return showAlert('al-estorno','O valor do estorno não pode ser maior que o saldo disponível.','err');
-  const novoEstorno = {
-    id: uid(),
-    valor: val,
-    data: data ? new Date(data+'T12:00:00').toLocaleDateString('pt-BR') : '',
-    dataSort: data||'',
-    motivo: motivo||'Sem motivo'
-  };
-  const idx = S.compras.findIndex(x=>x.id===compraId);
-  S.compras[idx] = {
-    ...S.compras[idx],
-    estornos: [...(S.compras[idx].estornos||[]), novoEstorno]
-  };
-  await fbSet('compras', compraId, S.compras[idx]);
-  closeModal('modal-estorno');
-  render();
-  showAlert('al-compra', `Estorno de ${fmtMoney(val)} registrado com sucesso.`);
-}
 
 // ── PWA: Service Worker + Install Banner ──
 let _pwaPrompt = null;
