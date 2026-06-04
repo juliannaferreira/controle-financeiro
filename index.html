@@ -3617,17 +3617,56 @@ window.openEstorno = function(compraId){
   const hist = document.getElementById('est-historico');
   const histList = document.getElementById('est-historico-list');
   if(c.estornos && c.estornos.length){
-    histList.innerHTML = c.estornos.map(e=>`
-      <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px dashed var(--border)">
-        <span>${e.motivo||'Sem motivo'} <span style="color:var(--text3)">${e.data||''}</span></span>
-        <span style="color:var(--accent);font-family:'DM Mono',monospace">-${fmtMoney(e.valor)}</span>
+    histList.innerHTML = c.estornos.map((e,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px dashed var(--border);gap:8px">
+        <div style="flex:1">
+          <div style="font-weight:500">${e.motivo||'Sem motivo'}</div>
+          <div style="font-size:11px;color:var(--text3)">${e.data||''}</div>
+        </div>
+        <span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0">-${fmtMoney(e.valor)}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-sm btn-edit" style="font-size:11px;padding:3px 8px" onclick="editarEstorno('${compraId}',${i})">Editar</button>
+          <button class="btn btn-sm btn-del" style="font-size:11px;padding:3px 8px" onclick="removerEstorno('${compraId}',${i})">Remover</button>
+        </div>
       </div>`).join('');
     hist.style.display = 'block';
   } else {
     hist.style.display = 'none';
   }
   document.getElementById('al-estorno').className = 'alert';
+  document.getElementById('est-compra-id').dataset.editIdx = '';
   openModal('modal-estorno');
+}
+
+window.editarEstorno = function(compraId, idx){
+  const c = S.compras.find(x=>x.id===compraId);
+  if(!c || !c.estornos || !c.estornos[idx]) return;
+  const e = c.estornos[idx];
+  // Pre-fill the form with existing estorno values
+  document.getElementById('est-valor').value = Number(e.valor).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  document.getElementById('est-motivo').value = e.motivo||'';
+  // Convert pt-BR date back to YYYY-MM-DD for input
+  if(e.dataSort){
+    document.getElementById('est-data').value = e.dataSort;
+  }
+  // Store edit index
+  document.getElementById('est-compra-id').dataset.editIdx = idx;
+  document.getElementById('al-estorno').className = 'alert alert-ok show';
+  document.getElementById('al-estorno').innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Editando estorno — preencha os novos valores e clique em Registrar';
+  calcEstornoInfo();
+}
+
+window.removerEstorno = async function(compraId, idx){
+  if(!confirm('Remover este estorno?')) return;
+  const compraIdx = S.compras.findIndex(x=>x.id===compraId);
+  if(compraIdx<0) return;
+  const novosEstornos = [...(S.compras[compraIdx].estornos||[])];
+  novosEstornos.splice(idx, 1);
+  S.compras[compraIdx] = {...S.compras[compraIdx], estornos: novosEstornos};
+  await fbSet('compras', compraId, S.compras[compraIdx]);
+  render();
+  // Reopen modal with updated data
+  openEstorno(compraId);
 }
 
 window.calcEstornoInfo = function(){
@@ -3650,31 +3689,52 @@ window.calcEstornoInfo = function(){
 
 window.salvarEstorno = async function(){
   const compraId = document.getElementById('est-compra-id').value;
+  const editIdxRaw = document.getElementById('est-compra-id').dataset.editIdx;
+  const editIdx = editIdxRaw !== undefined && editIdxRaw !== '' ? parseInt(editIdxRaw) : -1;
   const val = parseMoney(document.getElementById('est-valor').value);
   const data = document.getElementById('est-data').value;
   const motivo = document.getElementById('est-motivo').value.trim();
   const c = S.compras.find(x=>x.id===compraId);
   if(!c) return;
   if(!val || val <= 0) return showAlert('al-estorno','Informe o valor do estorno.','err');
-  const totalEst = (c.estornos||[]).reduce((s,e)=>s+e.valor,0);
-  if(val > c.valor - totalEst)
-    return showAlert('al-estorno','O valor do estorno não pode ser maior que o saldo disponível.','err');
-  const novoEstorno = {
-    id: uid(),
-    valor: val,
-    data: data ? new Date(data+'T12:00:00').toLocaleDateString('pt-BR') : '',
-    dataSort: data||'',
-    motivo: motivo||'Sem motivo'
-  };
   const idx = S.compras.findIndex(x=>x.id===compraId);
-  S.compras[idx] = {
-    ...S.compras[idx],
-    estornos: [...(S.compras[idx].estornos||[]), novoEstorno]
-  };
+  const estornosAtuais = [...(S.compras[idx].estornos||[])];
+
+  if(editIdx >= 0){
+    // Modo edição — substituir estorno existente
+    const totalSemEste = estornosAtuais.reduce((s,e,i)=> i===editIdx ? s : s+e.valor, 0);
+    if(val > c.valor - totalSemEste)
+      return showAlert('al-estorno','O valor não pode ser maior que o saldo disponível.','err');
+    estornosAtuais[editIdx] = {
+      ...estornosAtuais[editIdx],
+      valor: val,
+      data: data ? new Date(data+'T12:00:00').toLocaleDateString('pt-BR') : '',
+      dataSort: data||'',
+      motivo: motivo||'Sem motivo'
+    };
+    // Limpar editIdx
+    document.getElementById('est-compra-id').dataset.editIdx = '';
+  } else {
+    // Modo novo estorno
+    const totalEst = estornosAtuais.reduce((s,e)=>s+e.valor,0);
+    if(val > c.valor - totalEst)
+      return showAlert('al-estorno','O valor do estorno não pode ser maior que o saldo disponível.','err');
+    estornosAtuais.push({
+      id: uid(),
+      valor: val,
+      data: data ? new Date(data+'T12:00:00').toLocaleDateString('pt-BR') : '',
+      dataSort: data||'',
+      motivo: motivo||'Sem motivo'
+    });
+  }
+
+  S.compras[idx] = {...S.compras[idx], estornos: estornosAtuais};
   await fbSet('compras', compraId, S.compras[idx]);
   closeModal('modal-estorno');
   render();
-  showAlert('al-compra', `Estorno de ${fmtMoney(val)} registrado com sucesso.`);
+  showAlert('al-compra', editIdx >= 0
+    ? `Estorno atualizado para ${fmtMoney(val)}.`
+    : `Estorno de ${fmtMoney(val)} registrado com sucesso.`);
 }
 
 // ── PWA: Service Worker + Install Banner ──
