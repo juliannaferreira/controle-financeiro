@@ -1957,6 +1957,7 @@ window.addCompra = async function(){
   document.getElementById('c-estorno-cb').checked=false;
   document.getElementById('c-estorno-info').style.display='none';
   document.getElementById('parc-fields').className='parcel-grid';
+  document.getElementById('c-parc-cb').disabled=false;
   render();
   showAlert('al-compra', isEstorno ? 'Estorno registrado! Valor descontado da fatura.' : 'Compra adicionada!');
 }
