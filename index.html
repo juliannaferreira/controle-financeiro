@@ -2667,7 +2667,7 @@ window.renderOrcamento = function(){
                 <button class="st-btn ${cur==='PENDENTE'?'active-pendente':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PENDENTE',${val})">Pendente</button>
                 <button class="st-btn ${cur==='PAGO'?'active-pago':''}" onclick="setStatusInline('cart_${cartaoId}_${p.id}','${mes}','PAGO',${val})">Pago</button>
               </div>
-              <button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openComprasCartao('${p.id}','${mes}')">Ver</button>
+              <button class="btn btn-sm" style="font-size:11px;padding:3px 8px" onclick="openComprasCartao('${p.id}','${mes}','${cartaoId}')">Ver</button>
             </div>
           </div>`;
         }).join('');
@@ -3041,11 +3041,15 @@ window.saveNovaContaOrc = async function(){
   renderContasFixas();
 }
 
-window.openComprasCartao = function(pessoaId, mes){
+window.openComprasCartao = function(pessoaId, mes, cartaoId){
   const pessoa = S.pessoas.find(p=>p.id===pessoaId);
-  document.getElementById('orc-cartao-titulo').textContent = `Compras de ${pessoa?.nome||'?'} — ${fmtMes(mes)}`;
+  const cartao = cartaoId ? S.cartoes.find(k=>k.id===cartaoId) : null;
+  document.getElementById('orc-cartao-titulo').textContent =
+    cartao ? `${cartao.nome} — ${pessoa?.nome||'?'} — ${fmtMes(mes)}`
+           : `Compras de ${pessoa?.nome||'?'} — ${fmtMes(mes)}`;
   const compras = S.compras.filter(c=>{
     if(c.pessoaId!==pessoaId) return false;
+    if(cartaoId && c.cartaoId!==cartaoId) return false;
     if(c.parcelado&&c.data1){
       const [py,pm]=c.data1.split('-').map(Number);
       const [cy,cm]=mes.split('-').map(Number);
@@ -3055,6 +3059,7 @@ window.openComprasCartao = function(pessoaId, mes){
     const compMes=getMesFaturaCompra(c);
     return compMes===mes;
   });
+  const cartaoIdParam = cartaoId||'';
   const el = document.getElementById('orc-compras-cartao-list');
   if(!compras.length){
     el.innerHTML='<div class="list-empty">Nenhuma compra neste mês</div>';
@@ -3081,7 +3086,7 @@ window.openComprasCartao = function(pessoaId, mes){
         <div class="item-actions">
           <span class="item-val">${fmtMoney(vm)}</span>
           <button class="btn btn-sm btn-edit" onclick="closeModal('modal-compra-cartao');openEditCompra('${c.id}')">Editar</button>
-          <button class="btn btn-sm btn-del" onclick="removeCompraOrc('${c.id}','${pessoaId}','${mes}')">Remover</button>
+          <button class="btn btn-sm btn-del" onclick="removeCompraOrc('${c.id}','${pessoaId}','${mes}','${cartaoIdParam}')">Remover</button>
         </div>
       </div>`;
     }).join('');
@@ -3089,14 +3094,14 @@ window.openComprasCartao = function(pessoaId, mes){
   openModal('modal-compra-cartao');
 }
 
-window.removeCompraOrc = async function(id, pessoaId, mes){
+window.removeCompraOrc = async function(id, pessoaId, mes, cartaoId){
   if(!confirm('Remover esta compra?')) return;
   S.compras = S.compras.filter(c=>c.id!==id);
   await fbDel('compras', id);
   closeModal('modal-compra-cartao');
   render();
   // Reopen with updated list after a tick
-  setTimeout(()=>openComprasCartao(pessoaId,mes),100);
+  setTimeout(()=>openComprasCartao(pessoaId,mes,cartaoId),100);
 }
 
 window.removeContaFixaOrc = async function(id){
