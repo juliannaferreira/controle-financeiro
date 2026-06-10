@@ -784,6 +784,11 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
             <input type="checkbox" id="p-orcamento" checked/>
             <label for="p-orcamento">Exibir no módulo de orçamento mensal</label>
           </div>
+          <div class="form-grid cols1" style="margin-bottom:8px">
+            <div class="f"><label>Renda mensal padrão (R$) — opcional</label>
+              <input id="p-renda" placeholder="0,00" oninput="maskMoney(this)"/>
+            </div>
+          </div>
           <button class="btn btn-accent" onclick="addPessoa()">
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Cadastrar comprador
           </button>
@@ -1093,6 +1098,11 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
       <input type="checkbox" id="ep-orcamento"/>
       <label for="ep-orcamento">Exibir no módulo de orçamento mensal</label>
     </div>
+    <div class="form-grid cols1" style="margin-bottom:8px">
+      <div class="f"><label>Renda mensal padrão (R$)</label>
+        <input id="ep-renda" placeholder="0,00" oninput="maskMoney(this)"/>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-pessoa')">Cancelar</button>
       <button class="btn btn-accent" onclick="saveEditPessoa()">
@@ -1306,6 +1316,10 @@ body.light .st-btn.active-aberto{background:var(--danger-dim);color:#991b1b}
     <div class="f">
       <label>Renda mensal (R$)</label>
       <input id="mr-valor" placeholder="0,00" oninput="maskMoney(this)"/>
+    </div>
+    <div class="checkbox-row" style="margin-top:8px">
+      <input type="checkbox" id="mr-aplicar-proximos" checked/>
+      <label for="mr-aplicar-proximos">Usar este valor como padrão para os próximos meses</label>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-renda')">Cancelar</button>
@@ -2234,11 +2248,13 @@ window.addPessoa = async function(){
   const cor = document.getElementById('p-cor').value;
   if(!nome) return showAlert('al-pessoa','Informe o nome.','err');
   const exibirOrcamento = document.getElementById('p-orcamento').checked;
+  const rendaPadrao = parseMoney(document.getElementById('p-renda')?.value||'0');
   const id = uid();
-  const novo = {id, nome, cor, exibirOrcamento};
+  const novo = {id, nome, cor, exibirOrcamento, rendaPadrao: rendaPadrao||0};
   S.pessoas.push(novo);
   await fbSet('pessoas', id, novo);
   document.getElementById('p-nome').value='';
+  if(document.getElementById('p-renda')) document.getElementById('p-renda').value='';
   render();
   document.getElementById('setup-pessoaid').value = id;
   document.getElementById('setup-nome').textContent = nome;
@@ -2256,6 +2272,8 @@ window.openEditPessoa = function(id){
   document.getElementById('ep-id').value = id;
   document.getElementById('ep-nome').value = p.nome;
   document.getElementById('ep-cor').value = p.cor;
+  if(document.getElementById('ep-renda'))
+    document.getElementById('ep-renda').value = p.rendaPadrao>0 ? Number(p.rendaPadrao).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '';
   document.getElementById('ep-orcamento').checked = p.exibirOrcamento !== false;
   openModal('modal-pessoa');
 }
@@ -2266,7 +2284,10 @@ window.saveEditPessoa = async function(){
   if(idx<0) return;
   const nome = document.getElementById('ep-nome').value.trim();
   if(!nome) return;
-  S.pessoas[idx] = {...S.pessoas[idx], nome, cor: document.getElementById('ep-cor').value, exibirOrcamento: document.getElementById('ep-orcamento').checked};
+  const novaRenda = parseMoney(document.getElementById('ep-renda')?.value||'0');
+  S.pessoas[idx] = {...S.pessoas[idx], nome, cor: document.getElementById('ep-cor').value,
+    exibirOrcamento: document.getElementById('ep-orcamento').checked,
+    rendaPadrao: novaRenda||0};
   await fbSet('pessoas', id, S.pessoas[idx]);
   closeModal('modal-pessoa');
   render();
@@ -2499,7 +2520,8 @@ window.renderOrcamento = function(){
   ).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
   const cards = pessoasOrc.map(p=>{
     const rKey = `${p.id}_${mes}`;
-    const renda = S.rendas[rKey]||0;
+    // Use saved renda for this month; fall back to pessoa's rendaPadrao
+    const renda = S.rendas[rKey] !== undefined ? S.rendas[rKey] : (p.rendaPadrao||0);
     const ecoKey = `eco_${p.id}_${mes}`;
     const eco = S.rendas[ecoKey]||0;
     const fatura = faturasPorPessoa[p.id]||0;
@@ -2530,12 +2552,17 @@ window.renderOrcamento = function(){
       const curValor = c.valor;
       const valorPago = stData?.valor !== undefined && stData.valor !== c.valor ? stData.valor : null;
       const hoje = new Date().getDate();
-      const diasVenc = c.dia ? c.dia - hoje : null;
+      const mesAtualOrc = getMesAtual();
+      const diasVenc = (c.dia && mes === mesAtualOrc) ? c.dia - hoje : null;
       let vencBadge = '';
-      if(curStatus!=='PAGO' && diasVenc!==null){
-        if(diasVenc<0) vencBadge='<span class="venc-badge venc-hoje">Vencida</span>';
-        else if(diasVenc<=3) vencBadge=`<span class="venc-badge venc-breve">Vence em ${diasVenc}d</span>`;
-        else vencBadge=`<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
+      if(curStatus !== 'PAGO' && c.dia){
+        if(mes === mesAtualOrc){
+          if(diasVenc < 0)       vencBadge = '<span class="venc-badge venc-hoje">Vencida</span>';
+          else if(diasVenc <= 3) vencBadge = `<span class="venc-badge venc-breve">Vence em ${diasVenc}d</span>`;
+          else                   vencBadge = `<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
+        } else {
+          vencBadge = `<span class="venc-badge venc-ok">Dia ${c.dia}</span>`;
+        }
       }
       return `<div class="contas-item">
         <div class="contas-item-left">
@@ -2599,20 +2626,39 @@ window.renderOrcamento = function(){
       <div class="orc-section">Cartões</div>
       ${(()=>{
         const porCartao = faturasPorCartao[p.id]||{};
-        const entradas = Object.entries(porCartao).filter(([,v])=>v>0);
+        const entradas = Object.entries(porCartao).filter(([,v])=>v>0)
+          .sort(([aid],[bid])=>{
+            const ca=S.cartoes.find(k=>k.id===aid);
+            const cb=S.cartoes.find(k=>k.id===bid);
+            return (ca?.diaVenc||999)-(cb?.diaVenc||999);
+          });
         if(!entradas.length) return '<div style="font-size:12px;color:var(--text3);padding:6px 0">Nenhuma compra neste mês</div>';
         const rows = entradas.map(([cartaoId, val])=>{
           const cartao = S.cartoes.find(k=>k.id===cartaoId);
           const stKey = 'cart_'+cartaoId+'_'+p.id+'_'+mes;
           const stCart = S.statusContas[stKey]||{status:'ABERTO', valor:val};
           const cur = stCart.status||'ABERTO';
+          // Vencimento badge — igual às despesas fixas
+          const mesAtualCart = getMesAtual();
+          const hojeCart = new Date().getDate();
+          let vbCart = '';
+          if(cur !== 'PAGO' && cartao?.diaVenc){
+            if(mes === mesAtualCart){
+              const diasCart = cartao.diaVenc - hojeCart;
+              if(diasCart < 0)        vbCart = '<span class="venc-badge venc-hoje">Vencida</span>';
+              else if(diasCart <= 3)  vbCart = `<span class="venc-badge venc-breve">Vence em ${diasCart}d</span>`;
+              else                    vbCart = `<span class="venc-badge venc-ok">Dia ${cartao.diaVenc}</span>`;
+            } else {
+              vbCart = `<span class="venc-badge venc-ok">Dia ${cartao.diaVenc}</span>`;
+            }
+          }
           return `<div class="contas-item">
             <div class="contas-item-left">
               <div class="contas-item-nome" style="display:flex;align-items:center;gap:7px">
                 <div style="width:10px;height:10px;border-radius:50%;background:${cartao?.cor||'#888'};flex-shrink:0"></div>
                 ${cartao?.nome||'?'}
               </div>
-              <div class="contas-item-sub">Fatura do mês</div>
+              <div class="contas-item-sub">Fatura do mês ${vbCart}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span class="contas-item-val">${fmtMoney(val)}</span>
@@ -2661,7 +2707,7 @@ window.renderOrcamento = function(){
   const histHtml = [...S.pessoas].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(p=>{
     const vals = meses6.map(m=>{
       const rk = `${p.id}_${m}`;
-      const renda = S.rendas[rk]||0;
+      const renda = S.rendas[rk] !== undefined ? S.rendas[rk] : (p.rendaPadrao||0);
       const eco = S.rendas[`eco_${p.id}_${m}`]||0;
       const fixas = S.contasFixas.filter(c=>c.pessoaId===p.id&&c.fixa!==false).reduce((s,c)=>s+c.valor,0);
       let fat=0;
@@ -2783,7 +2829,17 @@ window.saveRenda = async function(){
   const pessoaId = document.getElementById('mr-pessoaid').value;
   const mes = document.getElementById('mr-mes').value;
   const valor = parseMoney(document.getElementById('mr-valor').value);
+  const aplicarProximos = document.getElementById('mr-aplicar-proximos')?.checked !== false;
+  // Save this month
   S.rendas[`${pessoaId}_${mes}`] = valor;
+  // If "apply to future months", update rendaPadrao on the pessoa
+  if(aplicarProximos){
+    const pIdx = S.pessoas.findIndex(x=>x.id===pessoaId);
+    if(pIdx>=0){
+      S.pessoas[pIdx] = {...S.pessoas[pIdx], rendaPadrao: valor};
+      await fbSet('pessoas', pessoaId, S.pessoas[pIdx]);
+    }
+  }
   await saveMeta();
   closeModal('modal-renda');
   renderOrcamento();
@@ -3130,7 +3186,9 @@ window.initRelatorio = function(){
 function calcOrcPessoa(pessoaId, mes){
   const p = S.pessoas.find(x=>x.id===pessoaId);
   if(!p) return null;
-  const renda = S.rendas[`${pessoaId}_${mes}`]||0;
+  const _p = S.pessoas.find(x=>x.id===pessoaId);
+  const _rk = `${pessoaId}_${mes}`;
+  const renda = S.rendas[_rk] !== undefined ? S.rendas[_rk] : (_p?.rendaPadrao||0);
   const eco = S.rendas[`eco_${pessoaId}_${mes}`]||0;
   let fatura=0;
   const comprasList = [];
